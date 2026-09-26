@@ -17,3 +17,10 @@ firmware/build/
 firmware/sdkconfig
 firmware/sdkconfig.old
 firmware/managed_components/
+
+# Editor settings with machine-specific paths (ESP-IDF extension, clangd)
+.vscode/
+.clangd
+
+# WLED checkout made by wled/build.sh
+WLED-nanoleaf/
