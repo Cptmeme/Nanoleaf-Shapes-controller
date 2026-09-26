@@ -8,3 +8,12 @@ _autosave-*
 
 # Stale gerber export (current set is in Gerbers/)
 Archive.zip
+
+# Claude Code local instructions
+CLAUDE.local.md
+
+# ESP-IDF build output
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/

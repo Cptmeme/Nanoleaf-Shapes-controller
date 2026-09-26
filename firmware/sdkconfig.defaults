@@ -1,0 +1,17 @@
+CONFIG_IDF_TARGET="esp32c5"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# 1 ms ticks: bus reply windows are a few milliseconds
+CONFIG_FREERTOS_HZ=1000
+
+# Console on UART0 (J2) only. The USB pins may be wired to the RC node.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# Two OTA slots; an update that never reaches Wi-Fi is rolled back
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# Wi-Fi event handlers log through a formatting vprintf
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
