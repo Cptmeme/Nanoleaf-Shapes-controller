@@ -90,7 +90,7 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
 | Panel colours | WLED effects, including 2D on the real layout | Console commands, or DDP from any sender |
 | Touch | Not yet wired to WLED actions | Logged; "touch light" demo |
 | Updates | WLED's update page | HTTP OTA with rollback |
-| Chips | ESP32 family (tested: C5; builds: C3, C6, S3) | Tested on C5 |
+| Chips | Board builds for ESPC5-12 (C5, tested) and WT0132C6-S5 (C6, untested); also compiles for C3 and S3 | Tested on C5 |
 
 ## Flashing
 
@@ -128,6 +128,7 @@ A new version of the PCB is in development. It will:
 | `D1` is 16 mm from `U1`, which enlarges the switching loop | Works as built. Rev B: place it next to `U1` |
 | No input protection | Mind the polarity. Protection was left out on purpose |
 | No bus pull-up | Not needed with Shapes panels (the panel holds DATA high). Fallback: 10 kΩ from `J1` pin 3 to 3.3 V |
+| ESP32-C6 only: GPIO8 (a boot-mode strap that must be high for download mode) is left unconnected | Untested; may need a 10 kΩ pull-up to 3.3 V. Rev B: pull it up on the board |
 
 ## Credits
 

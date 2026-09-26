@@ -1,7 +1,7 @@
 From c2167a0423615f0de76ec2aeb3c770424a16e662 Mon Sep 17 00:00:00 2001
 From: Cptmeme <61885007+Cptmeme@users.noreply.github.com>
 Date: Sat, 26 Sep 2026 21:01:00 +0200
-Subject: [PATCH] Add Nanoleaf Shapes (LeafBus) LED output type
+Subject: [PATCH 1/2] Add Nanoleaf Shapes (LeafBus) LED output type
 
 New bus type TYPE_LEAFBUS (72) for Nanoleaf Shapes panels on a single-wire
 1 Mbaud UART behind tri-state buffers (ESP32 family only):

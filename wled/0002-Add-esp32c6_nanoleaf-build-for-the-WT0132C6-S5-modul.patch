@@ -1,0 +1,50 @@
+From 686bc36c4bd9845fa92bf456b142202fc6554437 Mon Sep 17 00:00:00 2001
+From: Cptmeme <61885007+Cptmeme@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 21:40:36 +0200
+Subject: [PATCH 2/2] Add esp32c6_nanoleaf build for the WT0132C6-S5 module
+
+The PCB footprint is drawn for the WT0132C6-S5 (ESP32-C6, 4 MB). Pins from
+the schematic: panel TX GPIO3, RX GPIO10, BOOT GPIO9. DIO flash mode because
+the module's flash is unknown. Untested on hardware.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ platformio_override.ini | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/platformio_override.ini b/platformio_override.ini
+index 1e366bc6..05db18c8 100644
+--- a/platformio_override.ini
++++ b/platformio_override.ini
+@@ -1,5 +1,6 @@
+-; Local build for the Nanoleaf Shapes interface board (ESPC5-12, ESP32-C5).
+-; Panels: TX GPIO26, RX GPIO27 (found by the board's pin scan); BOOT button on GPIO28.
++; Builds for the Nanoleaf Shapes interface board (rev A), one per module:
++;   esp32c5_nanoleaf  ESPC5-12 (ESP32-C5), tested: TX GPIO26, RX GPIO27, BOOT GPIO28
++;   esp32c6_nanoleaf  WT0132C6-S5 (ESP32-C6), the footprint's module, UNTESTED: TX GPIO3, RX GPIO10, BOOT GPIO9
+ ; The board has no DTR/RTS: type `download` on the old firmware's console (or hold BOOT
+ ; while tapping EN), then flash; the watchdog reset starts the new image.
+ 
+@@ -20,3 +21,19 @@ board_build.flash_mode = dio
+ board_build.arduino.memory_type = dio_qspi
+ board_upload.before_reset = no-reset
+ board_upload.after_reset = watchdog-reset
++
++[env:esp32c6_nanoleaf]
++;; UNTESTED: pins taken from the schematic, not verified on a board
++extends = env:esp32c6dev_4MB
++build_flags = ${env:esp32c6dev_4MB.build_flags}
++  -D LED_TYPES=TYPE_LEAFBUS
++  -D DATA_PINS=3,10
++  -D PIXEL_COUNTS=9
++  -D BTNPIN=9
++  -D SERVERNAME='"Nanoleaf Shapes"'
++  -D MDNS_NAME='"nanoleaf-wled"'
++; the module's flash mode is unknown; DIO works on every flash chip
++board_build.flash_mode = dio
++board_build.arduino.memory_type = dio_qspi
++board_upload.before_reset = no-reset
++board_upload.after_reset = watchdog-reset
+-- 
+2.51.0
+

@@ -1,6 +1,6 @@
 # WLED with a native Nanoleaf Shapes output
 
-This patch adds an LED output type **"Nanoleaf Shapes"** to [WLED](https://github.com/wled/WLED). WLED then
+These patches add an LED output type **"Nanoleaf Shapes"** to [WLED](https://github.com/wled/WLED). WLED then
 drives the panels directly from the interface board. Each panel is one LED, and everything else in WLED
 works as usual: effects, palettes, segments, presets, sync, the apps and Home Assistant.
 
@@ -9,10 +9,11 @@ the wall the way the panels are actually arranged.
 
 | | |
 |---|---|
-| Patch | `0001-Add-Nanoleaf-Shapes-LeafBus-LED-output-type.patch` |
+| Patches | `0001-…` (the output type and 2D map), `0002-…` (the ESP32-C6 board build) |
 | Based on | WLED `main`, commit `961961fd` (17.0.0-dev) |
-| Tested | ESP32-C5 (ESPC5-12) on the rev A board, with 9 Mini Triangles |
-| Builds | ESP32-C3, ESP32-C6, ESP32-S3 |
+| Board builds | `esp32c5_nanoleaf`: ESPC5-12 (ESP32-C5), **tested** on the rev A board with 9 Mini Triangles |
+| | `esp32c6_nanoleaf`: WT0132C6-S5 (ESP32-C6), the module the footprint is drawn for, **untested** |
+| Also compiles | ESP32-C3 and ESP32-S3 (WLED's generic builds, with no board defaults) |
 | Not supported | ESP8266 (its second UART can't receive) |
 
 WLED's own ESP32-C5 support is still marked experimental upstream.
@@ -20,7 +21,8 @@ WLED's own ESP32-C5 support is still marked experimental upstream.
 ## Build
 
 ```sh
-wled/build.sh            # clones WLED into ./WLED-nanoleaf, applies the patch, builds
+wled/build.sh                                  # ESPC5-12: clones WLED into ./WLED-nanoleaf, applies the patches, builds
+wled/build.sh WLED-nanoleaf esp32c6_nanoleaf   # WT0132C6-S5
 ```
 
 Or by hand:
@@ -28,18 +30,28 @@ Or by hand:
 ```sh
 git clone https://github.com/wled/WLED.git && cd WLED
 git checkout -b nanoleaf-shapes 961961fdde8c22150a0212243621ee71bc9a7639
-git am /path/to/this/repo/wled/*.patch
+git am /path/to/this/repo/wled/*.patch     # applies 0001 and 0002 in order
 npm ci && npm run build
-pio run -e esp32c5_nanoleaf
+pio run -e esp32c5_nanoleaf                 # or esp32c6_nanoleaf
 ```
 
-The patch adds `platformio_override.ini` with the `esp32c5_nanoleaf` environment:
+The patches add `platformio_override.ini` with one environment per module:
 
-- **Panel output as the default LED output:** TX GPIO26, RX GPIO27, 9 LEDs. Change these in the settings
-  after flashing.
-- **BOOT button** (GPIO28) as WLED's button: a short press toggles the lights.
+| | `esp32c5_nanoleaf` | `esp32c6_nanoleaf` |
+|---|---|---|
+| Module | ESPC5-12 (ESP32-C5), tested | WT0132C6-S5 (ESP32-C6), untested |
+| Panel TX / RX | GPIO26 / GPIO27 | GPIO3 / GPIO10 |
+| BOOT button | GPIO28 | GPIO9 |
+| Flash used | 69 % of 1.8 MB | 85 % of 1.5 MB |
+
+Both environments set:
+
+- **Panel output as the default LED output,** with 9 LEDs. Change the count and pins in the settings after
+  flashing.
+- **BOOT button** as WLED's button: a short press toggles the lights.
 - **mDNS name** `nanoleaf-wled`.
-- **DIO flash mode:** the ESPC5-12's factory firmware runs in DIO, so QIO was not risked.
+- **DIO flash mode:** the ESPC5-12's factory firmware runs in DIO, and the WT0132C6-S5's flash is unknown;
+  DIO works on every flash chip.
 
 For another module, copy the environment and change the chip, the pins (the module pin table is in the
 [main README](../README.md#module-pins)) and, if your module supports it, the flash mode.
@@ -51,10 +63,21 @@ filesystem for its settings. Get the chip into download mode (see [Flashing](../
 board runs the [ESP-IDF firmware](../firmware/), just type `download` on its console. Then:
 
 ```sh
+# ESPC5-12 (ESP32-C5): the bootloader goes at 0x2000
 cd WLED-nanoleaf/.pio/build/esp32c5_nanoleaf
 esptool.py --chip esp32c5 -p /dev/cu.usbserial-XXXX -b 460800 --before no_reset --after watchdog_reset \
   write_flash --erase-all 0x2000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
+
+# WT0132C6-S5 (ESP32-C6): the bootloader goes at 0x0
+cd WLED-nanoleaf/.pio/build/esp32c6_nanoleaf
+esptool.py --chip esp32c6 -p /dev/cu.usbserial-XXXX -b 460800 --before no_reset --after watchdog_reset \
+  write_flash --erase-all 0x0 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
 ```
+
+On the ESP32-C6 the bus pins aren't boot-mode straps, so a panel doesn't affect download mode. The C6 does
+also need GPIO8 high at reset for download mode, and GPIO8 isn't connected on the rev A PCB. Whether BOOT + EN
+works then depends on the module pulling GPIO8 up internally, which is untested. If it doesn't, add a 10 kΩ
+pull-up from GPIO8 (module pin 17, WT0132C6-S5 numbering) to 3.3 V.
 
 `--erase-all` removes the ESP-IDF firmware's partitions and settings.
 
