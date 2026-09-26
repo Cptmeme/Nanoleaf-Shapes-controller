@@ -1,7 +1,7 @@
-# Nanoleaf Shapes interface board
+# Nanoleaf Shapes controller
 
-An open-source replacement controller for **Nanoleaf Shapes** panels. A small PCB plugs into a single
-panel edge and takes **42 V, GND and DATA** from it: no stock controller and no separate power supply.
+An open-source replacement controller for **Nanoleaf Shapes** panels. A small interface board plugs into a
+single panel edge and takes **42 V, GND and DATA** from it: no stock controller and no separate power supply.
 
 It runs either:
 
@@ -18,8 +18,7 @@ It runs either:
 
 | Path | Contents |
 |---|---|
-| `nanoleaf_shapes.kicad_*` | KiCad schematic and PCB |
-| `Gerbers/`, `jlc_bom.csv`, `jlc_cpl.csv` | Fabrication and assembly files for JLCPCB |
+| [`hardware/`](hardware/) | KiCad project (schematic and PCB), plus `Gerbers/` and the JLCPCB assembly files (`jlc_bom.csv`, `jlc_cpl.csv`) |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
 | [`wled/`](wled/) | Patch that adds the Nanoleaf Shapes output to WLED, plus a build script |
 | [`docs/protocol-notes.md`](docs/protocol-notes.md) | Panel bus behaviour measured on real panels that differs from, or adds to, the LeafBus spec |
