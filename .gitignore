@@ -24,3 +24,6 @@ firmware/managed_components/
 
 # WLED checkout made by wled/build.sh
 WLED-nanoleaf/
+
+# Schematic exports (removed from the repo on purpose)
+hardware/Nanoleaf Shapes Interface Board.*
