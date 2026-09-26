@@ -128,8 +128,9 @@ A new version of the PCB is in development. It will:
 ## Credits
 
 - [LeafBus](https://github.com/MyrikLD/LeafBus) by MyrikLD: the panel protocol specification and geometry (MIT).
-- **Christian Panton:** this board's PCB schematic is based on his `nanoleaf-ctrl-pt1` write-up and
-  schematics, including the tri-state buffer interface the stock controller uses.
+- **Christian Panton:** this board's PCB schematic is based on his write-up and schematics in
+  [Nanoleaf Shapes deepdive, part 1](https://christian.panton.org/posts/nanoleaf-ctrl-pt1/), including the
+  tri-state buffer interface the stock controller uses.
 - [WLED](https://github.com/wled/WLED).
 
 ## License
