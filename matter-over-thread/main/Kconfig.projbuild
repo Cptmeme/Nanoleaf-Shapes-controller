@@ -1,0 +1,37 @@
+menu "Nanoleaf Shapes panel bus"
+
+    config NANOLEAF_BUS_TX_GPIO
+        int "Panel bus TX GPIO"
+        range 0 48
+        default 26 if IDF_TARGET_ESP32C5
+        default 3 if IDF_TARGET_ESP32C6
+        default 0
+        help
+            Drives the transmit buffer (U4). ESPC5-12: GPIO26, WT0132C6-S5: GPIO3.
+
+    config NANOLEAF_BUS_RX_GPIO
+        int "Panel bus RX GPIO"
+        range 0 48
+        default 27 if IDF_TARGET_ESP32C5
+        default 10 if IDF_TARGET_ESP32C6
+        default 1
+        help
+            Reads the receive buffer (U3). ESPC5-12: GPIO27, WT0132C6-S5: GPIO10.
+
+    config NANOLEAF_BUS_RC_GPIO
+        int "One-shot (RC) node GPIO, -1 if not connected"
+        range -1 48
+        default 6 if IDF_TARGET_ESP32C5
+        default 7 if IDF_TARGET_ESP32C6
+        default -1
+        help
+            Kept as a high-impedance input so the hardware one-shot controls the transmit buffer.
+
+    config NANOLEAF_TRANSITION
+        int "Panel fade time per colour change"
+        range 0 255
+        default 1
+        help
+            The chunk fade time T sent with every colour frame. Units are unverified (probably 100 ms).
+
+endmenu

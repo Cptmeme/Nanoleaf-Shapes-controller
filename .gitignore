@@ -27,3 +27,12 @@ WLED-nanoleaf/
 
 # Schematic exports (removed from the repo on purpose)
 hardware/Nanoleaf Shapes Interface Board.*
+
+# Matter build output
+matter-over-thread/build/
+matter-over-thread/sdkconfig
+matter-over-thread/sdkconfig.old
+matter-over-thread/managed_components/
+matter-over-thread/build-c6/
+matter-over-thread/sdkconfig.c6
+matter-over-thread/dependencies.lock

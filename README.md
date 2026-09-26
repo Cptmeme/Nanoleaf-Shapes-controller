@@ -3,12 +3,15 @@
 An open-source replacement controller for **Nanoleaf Shapes** panels. A small interface board plugs into a
 single panel edge and takes **42 V, GND and DATA** from it: no stock controller and no separate power supply.
 
-It runs either:
+It runs one of three firmwares:
 
 - **WLED**, with a native "Nanoleaf Shapes" LED output. You get effects, 2D effects laid out on the real
   panel shape, the WLED apps and Home Assistant. See [`wled/`](wled/).
 - **A standalone ESP-IDF firmware** with a Wi-Fi console, status page, OTA updates and a DDP receiver. It's
   useful for bring-up, protocol work, or as a network target for another WLED instance. See [`firmware/`](firmware/).
+- **Matter over Thread** (esp-matter): the panels as one Matter colour light for Apple Home, Google Home or
+  Home Assistant, over Thread instead of Wi-Fi, plus a switch for a moving rainbow. See [`matter-over-thread/`](matter-over-thread/).
+  The light is commissioned and working on the ESP32-C5 board.
 
 > **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
 > fork and ring layouts. Hexagons and large Triangles are handled by the code but have not been tested on
@@ -21,6 +24,7 @@ It runs either:
 | [`hardware/`](hardware/) | KiCad project (schematic and PCB), plus `Gerbers/` and the JLCPCB assembly files (`jlc_bom.csv`, `jlc_cpl.csv`) |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
 | [`wled/`](wled/) | Patch that adds the Nanoleaf Shapes output to WLED, plus a build script |
+| [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |
 | [`docs/protocol-notes.md`](docs/protocol-notes.md) | Panel bus behaviour measured on real panels that differs from, or adds to, the LeafBus spec |
 
 ## Hardware
