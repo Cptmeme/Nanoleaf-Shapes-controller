@@ -12,7 +12,7 @@ It runs either:
 
 > **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
 > fork and ring layouts. Hexagons and large Triangles are handled by the code but have not been tested on
-> real panels yet.
+> real panels yet. A **rev B board is in development**; see [Next version](#next-version-rev-b).
 
 ## Repository
 
@@ -63,7 +63,8 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
 - **`J2` has no GND pin on rev A.** For a USB-serial adapter, take GND from `J1` pin 2 or from the negative
   pad of `C11`. Cross the UART: adapter TX → `J2` pin 1, adapter RX → `J2` pin 2.
 - `J2` has no DTR/RTS either, so there's no automatic reset into the bootloader. See [Flashing](#flashing).
-- To make a `J1` cable, cut a flex linker. The wire with continuity to the centre pad is GND. With the panels
+- On rev A, the board connects through a cable made from a cut Nanoleaf flex linker (rev B will clip on
+  directly). To make one, cut a flex linker. The wire with continuity to the centre pad is GND. With the panels
   powered, the wire reading about 42 V is the supply; the remaining one is DATA. Insulate the stripped ends
   before powering up: 42 V on DATA destroys a panel.
 
@@ -107,6 +108,13 @@ wire, half duplex, with the controller initiating every exchange. Real panels di
 few places, most importantly **the touch/status reply (`C0`) comes in layout order, not in reversed chunk
 order**. Everything measured on real panels is in [`docs/protocol-notes.md`](docs/protocol-notes.md).
 
+## Next version (rev B)
+
+A new version of the PCB is in development. It will:
+
+- **Fix the rev A issues** listed below.
+- **Clip onto a panel like the original Nanoleaf controller.** No more cable made from a cut flex linker.
+
 ## Known issues (rev A)
 
 | Issue | Workaround / rev B plan |
@@ -120,7 +128,8 @@ order**. Everything measured on real panels is in [`docs/protocol-notes.md`](doc
 ## Credits
 
 - [LeafBus](https://github.com/MyrikLD/LeafBus) by MyrikLD: the panel protocol specification and geometry (MIT).
-- Christian Panton's `nanoleaf-ctrl-pt1` write-up, for the tri-state buffer topology.
+- **Christian Panton:** this board's PCB schematic is based on his `nanoleaf-ctrl-pt1` write-up and
+  schematics, including the tri-state buffer interface the stock controller uses.
 - [WLED](https://github.com/wled/WLED).
 
 ## License
