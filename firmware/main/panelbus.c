@@ -15,7 +15,11 @@
 #define ENUM_TRIES     6
 #define POLL_PERIOD_MS 50
 #define PSU_CODE       1      // connector-count code of the power supply node (§7.1)
-#define MISS_WARN      20     // consecutive unanswered polls before warning
+#define SHORT_RUN      3      // consecutive short bulk pull replies taken as panels gone
+#define ENUM_GAP_MIN_MS 250   // gap after an enumeration; doubles while they come back to back
+#define ENUM_GAP_MAX_MS 3000  // the stock controller retries an empty edge every 3 s (§4.2)
+#define ENUM_QUIET_MS  5000   // this long without an enumeration resets the gap
+#define SETTLE_MS      1000   // enumerate once more after a hot-plug, for panels still starting up
 
 static const char *TAG = "bus";
 
@@ -428,6 +432,9 @@ esp_err_t pb_enumerate(void)
         s_state.layout_stable = stable;
         err = parse_layout(&s_state);
     }
+    if (s_state.npanels > 0) {
+        s_state.enumerations++;
+    }
     pb_unlock();
     return err;
 }
@@ -437,7 +444,7 @@ esp_err_t pb_enumerate(void)
 int pb_bulk_pull(void)
 {
     static const uint8_t frame[] = { PB_BULK_PULL };
-    uint8_t reply[2 * PB_MAX_PANELS + 1];
+    uint8_t reply[2 * PB_MAX_PANELS + 2];
 
     pb_lock();
     int n = s_state.npanels;
@@ -448,25 +455,31 @@ int pb_bulk_pull(void)
         return got;
     }
     if (got == expect) {
-        got += bus_read(reply + got, 1, 1, 2);   // a hot-plug CC follows the pairs
+        // A hot-plug CC can follow the pairs, and so can the pairs of panels added since the enumeration
+        got += bus_read(reply + got, sizeof reply - got, PB_EXPECT_NONE, 2);
     }
 
     s_state.polls++;
     if (got < expect) {
         s_state.poll_misses++;
-        if (++s_miss_run == MISS_WARN) {
-            ESP_LOGW(TAG, "panels stopped answering C0 (got %d of %d bytes)", got, expect);
-        }
+        s_miss_run++;
     } else {
-        if (s_miss_run >= MISS_WARN) {
-            ESP_LOGI(TAG, "panels answering again");
-        }
         s_miss_run = 0;
     }
 
-    if (got > 0 && reply[got - 1] == PB_HOTPLUG && (got - 1) % 2 == 0 && !s_state.hotplug) {
+    // §8: a panel was added, removed or moved when the pairs of the panels still present end in CC.
+    // Panels that answer without having been enumerated, or that stop answering, mean the same.
+    const char *change = NULL;
+    if (got > 0 && reply[got - 1] == PB_HOTPLUG && (got - 1) % 2 == 0) {
+        change = "CC";
+    } else if (got >= expect + 2) {
+        change = "more panels answer";
+    } else if (s_miss_run >= SHORT_RUN) {
+        change = got ? "fewer panels answer" : "no answer";
+    }
+    if (change && !s_state.hotplug) {
         s_state.hotplug = true;
-        ESP_LOGW(TAG, "hot-plug: panels changed, re-enumerating");
+        ESP_LOGW(TAG, "hot-plug (%s, %d of %d bytes), re-enumerating", change, got, expect);
     }
 
     // One pair per panel in LAYOUT order: the first pair is the panel attached
@@ -586,23 +599,27 @@ esp_err_t pb_brightness(uint8_t value)
     return pb_xact(frame, sizeof frame, NULL, 0, PB_EXPECT_NONE, 0, NULL) < 0 ? ESP_ERR_INVALID_STATE : ESP_OK;
 }
 
-// Nobody is there to type `enum` when WLED drives the panels: enumerate at
-// start-up, retry while nothing answers, and again after a hot-plug.
-static void auto_enumerate(void)
+static void auto_enumerate(const char *why)
 {
     static int reported = -1;
 
+    int64_t start = esp_timer_get_time();
     esp_err_t err = pb_enumerate();
-    if (s_state.npanels != reported) {
+    if (s_state.npanels != reported || strcmp(why, "no panels") != 0) {   // quiet while retrying an empty bus
         reported = s_state.npanels;
-        ESP_LOGI(TAG, "auto-enum: %d panel(s)%s", s_state.npanels,
+        ESP_LOGI(TAG, "auto-enum (%s): %d panel(s) in %d ms%s", why, s_state.npanels,
+                 (int)((esp_timer_get_time() - start) / 1000),
                  s_state.npanels && err != ESP_OK ? ", layout not parsed" : "");
     }
 }
 
+// Nobody is there to type `enum` when WLED or Matter drives the panels: enumerate at start-up, retry
+// while nothing answers, and straight after a hot-plug. A second later, enumerate once more for panels
+// that were still starting up. Enumerations that keep coming back to back are spaced out, up to 3 s.
 static void poll_task(void *arg)
 {
-    int64_t next_enum = 0;
+    int64_t last_enum = 0, next_enum = 0, settle_at = 0;
+    int gap_ms = ENUM_GAP_MIN_MS;
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(POLL_PERIOD_MS));
@@ -610,11 +627,19 @@ static void poll_task(void *arg)
             continue;
         }
         int64_t now = esp_timer_get_time();
-        if ((s_state.npanels == 0 || s_state.hotplug) && now >= next_enum) {
-            auto_enumerate();
-            next_enum = now + (s_state.npanels ? 2 : 5) * 1000000LL;
+        const char *why = s_state.npanels == 0          ? "no panels"
+                        : s_state.hotplug               ? "hot-plug"
+                        : settle_at && now >= settle_at ? "settle check"
+                        : NULL;
+        if (why && now >= next_enum) {
+            bool quiet = last_enum == 0 || now - last_enum > ENUM_QUIET_MS * 1000LL;
+            gap_ms = quiet ? ENUM_GAP_MIN_MS : (gap_ms * 2 < ENUM_GAP_MAX_MS ? gap_ms * 2 : ENUM_GAP_MAX_MS);
+            last_enum = now;
+            next_enum = now + gap_ms * 1000LL;
+            settle_at = s_state.hotplug ? now + SETTLE_MS * 1000LL : 0;
+            auto_enumerate(why);
         } else if (s_state.npanels > 0) {
-            pb_bulk_pull();
+            pb_bulk_pull();   // keeps the panels polled while an enumeration waits for its gap
         }
     }
 }

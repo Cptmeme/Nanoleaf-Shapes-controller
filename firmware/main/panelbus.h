@@ -13,6 +13,10 @@
 #include <stdint.h>
 #include "esp_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PB_MAX_PANELS 64
 #define PB_MAX_LAYOUT 256
 
@@ -57,8 +61,9 @@ typedef struct {
     int npanels;                     // 0 = not enumerated
     pb_panel_t panels[PB_MAX_PANELS];   // in layout-string order
     int psu_parent, psu_conn;        // where the power supply node sits, -1 if absent
-    bool hotplug;                    // a bulk pull reported CC since the last enumeration
+    bool hotplug;                    // a bulk pull saw panels added or removed; re-enumeration pending
     uint32_t polls, poll_misses, echo_errors;
+    uint32_t enumerations;           // successful enumerations since pb_init(); lets users re-apply state
 } pb_state_t;
 
 typedef struct {
@@ -114,3 +119,7 @@ bool pb_poll_enabled(void);
 // Log every frame sent and every reply received, in hex.
 void pb_trace(bool on);
 bool pb_tracing(void);
+
+#ifdef __cplusplus
+}
+#endif
