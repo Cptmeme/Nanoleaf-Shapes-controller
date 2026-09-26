@@ -63,9 +63,14 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
   pad of `C11`. Cross the UART: adapter TX → `J2` pin 1, adapter RX → `J2` pin 2.
 - `J2` has no DTR/RTS either, so there's no automatic reset into the bootloader. See [Flashing](#flashing).
 - On rev A, the board connects through a cable made from a cut Nanoleaf flex linker (rev B will clip on
-  directly). To make one, cut a flex linker. The wire with continuity to the centre pad is GND. With the panels
-  powered, the wire reading about 42 V is the supply; the remaining one is DATA. Insulate the stripped ends
-  before powering up: 42 V on DATA destroys a panel.
+  directly). Inside the outer sheath are three wires:
+  - **thick red:** 42 V → `J1` pin 1
+  - **bare wire, with no insulation of its own:** GND → `J1` pin 2
+  - **thin blue:** DATA (`COM` on the silkscreen) → `J1` pin 3
+
+  Check this before connecting anything, because colours may differ between batches. The wire with continuity
+  to the centre pad is GND; with the panels powered, the wire reading about 42 V is the supply. Insulate the
+  stripped ends, including the bare GND wire, before powering up: 42 V on DATA destroys a panel.
 
 ### Power and safety
 
