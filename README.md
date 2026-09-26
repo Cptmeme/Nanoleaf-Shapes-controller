@@ -9,13 +9,14 @@ It runs one of three firmwares:
   panel shape, the WLED apps and Home Assistant. See [`wled/`](wled/).
 - **A standalone ESP-IDF firmware** with a Wi-Fi console, status page, OTA updates and a DDP receiver. It's
   useful for bring-up, protocol work, or as a network target for another WLED instance. See [`firmware/`](firmware/).
-- **Matter over Thread** (esp-matter): the panels as one Matter colour light for Apple Home, Google Home or
-  Home Assistant, over Thread instead of Wi-Fi, plus a switch for a moving rainbow. See [`matter-over-thread/`](matter-over-thread/).
-  The light is commissioned and working on the ESP32-C5 board.
+- **Matter over Thread**, built on [esp-matter](https://github.com/espressif/esp-matter): the panels become
+  one Matter colour light for Apple Home, Google Home or Home Assistant, plus a switch that runs a moving
+  rainbow. It talks Thread instead of Wi-Fi and pairs over Bluetooth. See [`matter-over-thread/`](matter-over-thread/).
 
 > **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
-> fork and ring layouts. Hexagons and large Triangles are handled by the code but have not been tested on
-> real panels yet. A **rev B board is in development**; see [Next version](#next-version-rev-b).
+> fork and ring layouts, with WLED, with the ESP-IDF firmware, and as a Matter light in a Thread network.
+> Hexagons and large Triangles are handled by the code but have not been tested on real panels yet. A
+> **rev B board is in development**; see [Next version](#next-version-rev-b).
 
 ## Repository
 
@@ -79,22 +80,27 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
 ### Power and safety
 
 - **There is no reverse-polarity, fuse or TVS protection.** Reversing `J1` destroys `U1`.
-- **Powered from a panel through `J1`:** the normal mode. Wi-Fi works reliably.
+- **Powered from a panel through `J1`:** the normal mode. Wi-Fi, Bluetooth and Thread all work reliably.
 - **Powered from a USB-serial adapter's 3.3 V on `J2` pin 3:** good enough for flashing and for the
-  radio-off console. Most adapters can't supply the Wi-Fi start-up current, though, and the chip then
-  reset-loops. **Never feed adapter 3.3 V while `J1` is powered.**
+  radio-off console. Most adapters can't supply the current the radio draws while it starts up, though,
+  so WLED and the Matter firmware reset-loop on adapter power. **Never feed adapter 3.3 V while `J1` is
+  powered.**
 - **Never connect TX/RX without also connecting GND.** The panel supply and a computer don't share a ground
   otherwise.
 
 ## Firmware
 
-| | WLED ([`wled/`](wled/)) | ESP-IDF firmware ([`firmware/`](firmware/)) |
-|---|---|---|
-| Use | Everyday lighting: effects, apps, Home Assistant | Bring-up, diagnostics, protocol exploration |
-| Panel colours | WLED effects, including 2D on the real layout | Console commands, or DDP from any sender |
-| Touch | Not yet wired to WLED actions | Logged; "touch light" demo |
-| Updates | WLED's update page | HTTP OTA with rollback |
-| Chips | Board builds for ESPC5-12 (C5, tested) and WT0132C6-S5 (C6, untested); also compiles for C3 and S3 | Tested on C5 |
+| | WLED ([`wled/`](wled/)) | Matter ([`matter-over-thread/`](matter-over-thread/)) | ESP-IDF firmware ([`firmware/`](firmware/)) |
+|---|---|---|---|
+| Use | Everyday lighting: effects, apps, Home Assistant | Smart-home light: Apple Home, Google Home, Home Assistant | Bring-up, diagnostics, protocol exploration |
+| Network | Wi-Fi | Thread (needs a Thread border router); pairing over Bluetooth | Wi-Fi |
+| Panel colours | WLED effects, including 2D on the real layout | One colour for all panels, white temperature, brightness; a rainbow switch | Console commands, or DDP from any sender |
+| Touch | Not yet wired to WLED actions | Not yet exposed | Logged; "touch light" demo |
+| Updates | WLED's update page | Serial (keeps the pairing); Matter OTA is enabled but untested | HTTP OTA with rollback |
+| Chips | Board builds for ESPC5-12 (C5, tested) and WT0132C6-S5 (C6, untested); also compiles for C3 and S3 | C5 (tested) and C6 (builds, untested) | Tested on C5 |
+
+All three drive the panels the same way: they enumerate the layout at start-up, poll the panels every 50 ms,
+and re-enumerate when panels are added or removed while running.
 
 ## Flashing
 
@@ -107,7 +113,12 @@ then put the chip into download mode:
   to be high at reset. With a panel attached the bus idles high and BOOT + EN works reliably; without a
   panel it's hit-and-miss.
 
-After that, both firmwares update over Wi-Fi.
+After that, WLED and the ESP-IDF firmware update over Wi-Fi. The Matter firmware updates over serial again
+(BOOT + EN; without an erase, the pairing survives).
+
+**Switching between firmwares:** each firmware has its own flash layout, so erase the chip when switching
+(`esptool write_flash --erase-all`, or `idf.py erase-flash`). That also removes Wi-Fi settings and Matter
+pairings.
 
 ## Protocol
 
@@ -141,8 +152,11 @@ A new version of the PCB is in development. It will:
   [Nanoleaf Shapes deepdive, part 1](https://christian.panton.org/posts/nanoleaf-ctrl-pt1/), including the
   tri-state buffer interface the stock controller uses.
 - [WLED](https://github.com/wled/WLED).
+- [esp-matter](https://github.com/espressif/esp-matter) by Espressif (Apache-2.0), on top of the
+  [Matter SDK](https://github.com/project-chip/connectedhomeip). The Matter firmware started from its light
+  example (public domain / CC0).
 
 ## License
 
-Hardware and the ESP-IDF firmware: [GPL-3.0](LICENSE). The files in [`wled/`](wled/) modify WLED, which is
-licensed under EUPL-1.2, and are provided under WLED's licence.
+Hardware, the ESP-IDF firmware and the Matter firmware: [GPL-3.0](LICENSE). The files in [`wled/`](wled/)
+modify WLED, which is licensed under EUPL-1.2, and are provided under WLED's licence.
