@@ -1,0 +1,5 @@
+{
+  "name": "nanoleaf_shapes",
+  "build": { "libArchive": false },
+  "dependencies": {}
+}
