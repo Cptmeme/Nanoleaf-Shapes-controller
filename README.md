@@ -8,7 +8,7 @@ single panel edge and takes **42 V, GND and DATA** from it: no stock controller 
 </p>
 <p align="center"><em>The rev A board (foreground) driving nine Mini Triangles through a cut flex linker. Click for the video.</em></p>
 
-It runs one of three firmwares:
+It runs one of four firmwares:
 
 - **WLED**, with a native "Nanoleaf Shapes" LED output. You get effects, 2D effects laid out on the real
   panel shape, the WLED apps and Home Assistant. See [`wled/`](wled/).
@@ -17,6 +17,9 @@ It runs one of three firmwares:
 - **Matter over Thread**, built on [esp-matter](https://github.com/espressif/esp-matter): the panels become
   one Matter colour light for Apple Home, Google Home or Home Assistant, plus a switch that runs a moving
   rainbow. It talks Thread instead of Wi-Fi and pairs over Bluetooth. See [`matter-over-thread/`](matter-over-thread/).
+- **[LeafBus](https://github.com/MyrikLD/LeafBus)**, MyrikLD's original MicroPython firmware, whose protocol work
+  this project builds on. The panels become a DDP and E1.31/sACN pixel sink with a layout page. It needs three
+  settings on this board, and hasn't been tested on it yet; see [Running LeafBus](#running-leafbus).
 
 > **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
 > fork and ring layouts, with WLED, with the ESP-IDF firmware, and as a Matter light in a Thread network.
@@ -107,6 +110,24 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
 All three drive the panels the same way: they enumerate the layout at start-up, poll the panels every 50 ms,
 and re-enumerate when panels are added or removed while running.
 
+### Running LeafBus
+
+[LeafBus](https://github.com/MyrikLD/LeafBus) is written for an original ESP32 wired to the panel through a
+resistor. To run it on this board, change three things (this hasn't been tested on the board yet):
+
+1. **MicroPython v1.29 or later for your module:** [ESP32_GENERIC_C5](https://micropython.org/download/ESP32_GENERIC_C5/)
+   for the ESPC5-12, or [ESP32_GENERIC_C6](https://micropython.org/download/ESP32_GENERIC_C6/) for the
+   WT0132C6-S5. See [Flashing](#flashing) for download mode.
+2. **This board's bus pins in `config.json`:** `"uart": {"tx": 26, "rx": 27}` on the ESP32-C5, or
+   `{"tx": 3, "rx": 10}` on the ESP32-C6.
+3. **`open_drain=False` where `app.py` creates the bus:**
+   `panelbus.PanelBus(tx=cfg['uart']['tx'], rx=cfg['uart']['rx'], open_drain=False)`. This board doesn't need
+   open drain, because its tri-state buffer releases the line after every byte. LeafBus's open-drain switch
+   also writes a register that only exists on the original ESP32.
+
+Then copy the files as in LeafBus's quick start. On rev A, mind the serial caveats under
+[Connectors](#connectors) and [Power and safety](#power-and-safety).
+
 ## Flashing
 
 **The first flash always goes over serial.** Connect an adapter to `J2` (see [Connectors](#connectors)),
@@ -152,7 +173,8 @@ A new version of the PCB is in development. It will:
 
 ## Credits
 
-- [LeafBus](https://github.com/MyrikLD/LeafBus) by MyrikLD: the panel protocol specification and geometry (MIT).
+- [LeafBus](https://github.com/MyrikLD/LeafBus) by MyrikLD: the panel protocol specification, the geometry, and the
+  original MicroPython firmware (MIT).
 - **Christian Panton:** this board's PCB schematic is based on his write-up and schematics in
   [Nanoleaf Shapes deepdive, part 1](https://christian.panton.org/posts/nanoleaf-ctrl-pt1/), including the
   tri-state buffer interface the stock controller uses.
