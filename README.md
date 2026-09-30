@@ -3,6 +3,11 @@
 An open-source replacement controller for **Nanoleaf Shapes** panels. A small interface board plugs into a
 single panel edge and takes **42 V, GND and DATA** from it: no stock controller and no separate power supply.
 
+<p align="center">
+  <a href="docs/media/demo.mp4"><img src="docs/media/demo.gif" width="320" alt="Nine Nanoleaf Shapes Mini Triangles changing colour, driven by the rev A controller board in the foreground"></a>
+</p>
+<p align="center"><em>The rev A board (foreground) driving nine Mini Triangles through a cut flex linker. Click for the video.</em></p>
+
 It runs one of three firmwares:
 
 - **WLED**, with a native "Nanoleaf Shapes" LED output. You get effects, 2D effects laid out on the real
