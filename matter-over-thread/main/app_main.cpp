@@ -100,6 +100,24 @@ static esp_err_t app_attribute_update_cb(attribute::callback_type_t type, uint16
     return ESP_OK;
 }
 
+/* A colour command on the light switches the rainbow off, so picking a colour shows that colour. Runs
+   before the command itself, so it also catches a colour the light already has: that changes no attribute
+   and never reaches the attribute callback. Switching the rainbow endpoint keeps controllers in step. */
+static esp_err_t colour_command_cb(const chip::app::ConcreteCommandPath &path, chip::TLV::TLVReader &tlv, void *opaque)
+{
+    if (rainbow_endpoint_id == 0 || path.mEndpointId != light_endpoint_id) {
+        return ESP_OK;
+    }
+    esp_matter_attr_val_t val = esp_matter_invalid(NULL);
+    attribute::get_val(attribute::get(rainbow_endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id), &val);
+    if (val.val.b) {
+        ESP_LOGI(TAG, "colour command: rainbow off");
+        val = esp_matter_bool(false);
+        attribute::update(rainbow_endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id, &val);
+    }
+    return ESP_OK; // anything else would stop the colour command
+}
+
 extern "C" void app_main()
 {
     esp_err_t err = ESP_OK;
@@ -133,9 +151,11 @@ extern "C" void app_main()
     extended_color_light::config_t light_config;
     light_config.on_off.on_off = DEFAULT_POWER;
     light_config.on_off_lighting.start_up_on_off = nullptr;
-    light_config.level_control.current_level = DEFAULT_BRIGHTNESS;
-    light_config.level_control.on_level = DEFAULT_BRIGHTNESS;
-    light_config.level_control_lighting.start_up_current_level = DEFAULT_BRIGHTNESS;
+    light_config.level_control.current_level = DEFAULT_BRIGHTNESS; // first boot only; then restored from flash
+    /* Null means "the previous level": for OnLevel on every On command, for StartUpCurrentLevel after a
+       power cut. A value here would send every On to that brightness (the example's 128 = 50 %). */
+    light_config.level_control.on_level = nullptr;
+    light_config.level_control_lighting.start_up_current_level = nullptr;
     light_config.color_control.color_mode = (uint8_t)ColorControl::ColorMode::kCurrentHueAndCurrentSaturation;
     light_config.color_control.enhanced_color_mode = (uint8_t)ColorControl::ColorMode::kCurrentHueAndCurrentSaturation;
     light_config.color_control_color_temperature.start_up_color_temperature_mireds = nullptr;
@@ -175,6 +195,14 @@ extern "C" void app_main()
     ABORT_APP_ON_FAILURE(rainbow_endpoint != nullptr, ESP_LOGE(TAG, "Failed to create the rainbow endpoint"));
     rainbow_endpoint_id = endpoint::get_id(rainbow_endpoint);
     ESP_LOGI(TAG, "Rainbow switch created with endpoint_id %d", rainbow_endpoint_id);
+
+    /* Every colour command (hue, saturation, xy, white temperature) stops the rainbow; StopMoveStep only
+       halts a running fade. */
+    for (command_t *cmd = command::get_first(color_control_cluster); cmd; cmd = command::get_next(cmd)) {
+        if (command::get_id(cmd) != ColorControl::Commands::StopMoveStep::Id) {
+            command::set_user_callback(cmd, colour_command_cb);
+        }
+    }
 
 #if CHIP_DEVICE_CONFIG_ENABLE_THREAD
     esp_openthread_platform_config_t config = {

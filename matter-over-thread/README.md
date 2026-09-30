@@ -12,7 +12,7 @@ Wi-Fi.
 | Panels | All panels together are one light |
 | Chips | ESP32-C5 (ESPC5-12) and ESP32-C6 (WT0132C6-S5); both have a Thread radio |
 | Based on | [esp-matter](https://github.com/espressif/esp-matter) v1.5, ESP-IDF 5.5 |
-| Status | Light commissioned and working on the ESP32-C5 board. Rainbow switch and hot-plug handling not yet tested on hardware |
+| Status | Working on the ESP32-C5 board: the light, the rainbow switch (a colour choice switches it off), brightness restore on "on", and adding and removing panels while it runs |
 
 ## How it drives the panels
 
@@ -22,14 +22,17 @@ Wi-Fi.
   resolution.
 - **White temperature** is rendered as white LEDs plus a warm or cool tint from the RGB LEDs.
 - **The panel bus** is the same engine as the [ESP-IDF firmware](../firmware/)
-  (`firmware/main/panelbus.c`). It enumerates at start-up, polls every 50 ms and re-enumerates straight
-  after a hot-plug, so you can add or remove panels while it runs. Within 50 ms of each enumeration, every
-  panel gets the light's current state, and the rainbow spreads over the new panel count. Don't unplug a
-  panel between the board and the power supply: that cuts the board's power.
+  (`firmware/main/panelbus.c`). It enumerates at start-up, polls every 50 ms, re-reads the layout once a
+  second and re-enumerates when it changes, so you can add or remove panels while it runs. Within 50 ms of
+  each enumeration, every panel gets the light's current state, and the rainbow spreads over the new panel
+  count. Don't unplug a panel between the board and the power supply: that cuts the board's power.
 - **The rainbow** spreads a full colour wheel over the panels in chain order and turns it 2° every 40 ms,
   so the colours travel along the chain and pass each panel in about 7 seconds. It replaces the light's
   colour while it's on. The light's on/off and brightness still apply, so the rainbow only shows while the
-  light is on. Both the light and the rainbow switch come back in their last state after a power cut.
+  light is on. Picking a colour or a white temperature in the app switches the rainbow off, even if it's the
+  colour the light already had. Both the light and the rainbow switch come back in their last state after a
+  power cut.
+- **Turning the light on** returns to its last brightness, and so does a power cut.
 
 ## What you need
 
@@ -96,6 +99,7 @@ Scan the QR code, or type the manual code, in your controller app. The board adv
 |---|---|
 | Controller: on/off, brightness, colour, white temperature | All panels follow |
 | Controller: rainbow switch on / off | Moving rainbow / back to the light's colour |
+| Controller: pick a colour while the rainbow runs | Rainbow switches off, panels show the colour |
 | BOOT button (`SW2`) tap | Toggle the light |
 | BOOT button, hold 5 s | Factory reset: removes all pairings, so the board can be commissioned again |
 | Serial console (`J2`, 115200) | Matter shell, e.g. `matter onboardingcodes ble` and `matter config` |
