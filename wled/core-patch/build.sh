@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build WLED with the Nanoleaf Shapes output for the interface board.
 #
-#   wled/build.sh [directory] [environment]
+#   wled/core-patch/build.sh [directory] [environment]
 #
 #   directory    WLED checkout to create or reuse (default: ./WLED-nanoleaf)
 #   environment  esp32c5_nanoleaf (ESPC5-12, tested; default)

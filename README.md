@@ -10,8 +10,9 @@ single panel edge and takes **42 V, GND and DATA** from it: no stock controller 
 
 It runs one of four firmwares:
 
-- **WLED**, with a native "Nanoleaf Shapes" LED output. You get effects, 2D effects laid out on the real
-  panel shape, the WLED apps and Home Assistant. See [`wled/`](wled/).
+- **WLED**, through a drop-in [usermod](wled/usermod/nanoleaf_shapes/) that needs no changes to WLED itself
+  (recommended), or the original [core patch](wled/core-patch/). You get effects, 2D effects laid out on the
+  real panel shape, the WLED apps and Home Assistant. See [`wled/`](wled/).
 - **A standalone ESP-IDF firmware** with a Wi-Fi console, status page, OTA updates and a DDP receiver. It's
   useful for bring-up, protocol work, or as a network target for another WLED instance. See [`firmware/`](firmware/).
 - **Matter over Thread**, built on [esp-matter](https://github.com/espressif/esp-matter): the panels become
@@ -22,7 +23,8 @@ It runs one of four firmwares:
   settings on this board, and hasn't been tested on it yet; see [Running LeafBus](#running-leafbus).
 
 > **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
-> fork and ring layouts, with WLED, with the ESP-IDF firmware, and as a Matter light in a Thread network.
+> fork and ring layouts, with WLED (the core-patch build), with the ESP-IDF firmware, and as a Matter light in
+> a Thread network.
 > Hexagons and large Triangles are handled by the code but have not been tested on real panels yet. A
 > **rev B board is in development**; see [Next version](#next-version-rev-b).
 
@@ -32,7 +34,7 @@ It runs one of four firmwares:
 |---|---|
 | [`hardware/`](hardware/) | KiCad project (schematic and PCB), plus `Gerbers/` and the JLCPCB assembly files (`jlc_bom.csv`, `jlc_cpl.csv`) |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
-| [`wled/`](wled/) | Patch that adds the Nanoleaf Shapes output to WLED, plus a build script |
+| [`wled/`](wled/) | WLED integration: the usermod (recommended) and the original core patch, each with build instructions |
 | [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |
 | [`docs/protocol-notes.md`](docs/protocol-notes.md) | Panel bus behaviour measured on real panels that differs from, or adds to, the LeafBus spec |
 
@@ -105,7 +107,7 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
 | Panel colours | WLED effects, including 2D on the real layout | One colour for all panels, white temperature, brightness; a rainbow switch | Console commands, or DDP from any sender |
 | Touch | Not yet wired to WLED actions | Not yet exposed | Logged; "touch light" demo |
 | Updates | WLED's update page | Serial (keeps the pairing); Matter OTA is enabled but untested | HTTP OTA with rollback |
-| Chips | Board builds for ESPC5-12 (C5, tested) and WT0132C6-S5 (C6, untested); also compiles for C3 and S3 | C5 (tested) and C6 (builds, untested) | Tested on C5 |
+| Chips | Usermod: builds for C5 and C6, not yet run on hardware. Core patch: tested on C5, C6 untested, also compiles for C3 and S3 | C5 (tested) and C6 (builds, untested) | Tested on C5 |
 
 All three drive the panels the same way: they enumerate the layout at start-up, poll the panels every 50 ms,
 and re-enumerate when panels are added or removed while running.
@@ -186,4 +188,4 @@ A new version of the PCB is in development. It will:
 ## License
 
 Hardware, the ESP-IDF firmware and the Matter firmware: [GPL-3.0](LICENSE). The files in [`wled/`](wled/)
-modify WLED, which is licensed under EUPL-1.2, and are provided under WLED's licence.
+build into WLED, which is licensed under EUPL-1.2, and are provided under WLED's licence.

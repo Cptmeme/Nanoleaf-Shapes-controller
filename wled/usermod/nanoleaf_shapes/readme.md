@@ -3,7 +3,11 @@
 Drives **Nanoleaf Shapes** light panels from WLED over their own panel bus, using the
 [interface board](../../../hardware) in place of the stock Nanoleaf controller. One panel = one pixel.
 
-Needs no changes to WLED itself — this replaces the earlier `TYPE_LEAFBUS` core patch.
+Needs no changes to WLED itself — this replaces the earlier `TYPE_LEAFBUS` [core patch](../../core-patch/).
+
+**Status:** builds against WLED `main` at commit `961961fd` (17.0.0-dev) for the ESP32-C5 and ESP32-C6
+(checked 2026-09-30), but hasn't been run on hardware yet. The core patch uses the same bus driver and is the
+version tested on the rev A board.
 
 ## How it works
 
@@ -20,30 +24,51 @@ document and were verified on hardware:
 
 ## Build
 
-```ini
-[platformio]
-default_envs = esp32c5_nanoleaf
+1. **Get WLED** and the tools for its web UI. The usermod was built against commit `961961fd`; newer WLED
+   should work too, as long as the usermod interface hasn't changed.
+   ```sh
+   git clone https://github.com/wled/WLED.git && cd WLED
+   git checkout 961961fdde8c22150a0212243621ee71bc9a7639   # optional: the exact tested base
+   npm ci
+   ```
+2. **Make the usermod available to WLED.** Either copy this folder into WLED's `usermods/` folder:
+   ```sh
+   cp -r /path/to/Nanoleaf-Shapes-controller/wled/usermod/nanoleaf_shapes usermods/
+   ```
+   and use `custom_usermods = nanoleaf_shapes` below, or leave it where it is and point to it with
+   `custom_usermods = symlink:///path/to/Nanoleaf-Shapes-controller/wled/usermod/nanoleaf_shapes`.
+3. **Add an environment** to `platformio_override.ini`. For the ESPC5-12 (ESP32-C5):
+   ```ini
+   [platformio]
+   default_envs = esp32c5_nanoleaf
 
-[env:esp32c5_nanoleaf]
-extends = env:esp32c5dev
-custom_usermods = nanoleaf_shapes
-build_flags = ${env:esp32c5dev.build_flags}
-  -D LEAFBUS_TX_PIN=26
-  -D LEAFBUS_RX_PIN=27
-  -D LED_TYPES=TYPE_SK6812          ; RGBW so the panels' white channel survives
-  -D DATA_PINS=2                    ; unused GPIO: this output only feeds the usermod
-  -D PIXEL_COUNTS=9                 ; one pixel per panel
-  -D BTNPIN=28
-  -D SERVERNAME='"Nanoleaf Shapes"'
-  -D MDNS_NAME='"nanoleaf-wled"'
-board_build.flash_mode = dio
-board_build.arduino.memory_type = dio_qspi
-board_upload.before_reset = no-reset
-board_upload.after_reset = watchdog-reset
-```
+   [env:esp32c5_nanoleaf]
+   extends = env:esp32c5dev
+   custom_usermods = nanoleaf_shapes
+   build_flags = ${env:esp32c5dev.build_flags}
+     -D LEAFBUS_TX_PIN=26
+     -D LEAFBUS_RX_PIN=27
+     -D LED_TYPES=TYPE_SK6812_RGBW      ; RGBW so the panels' white channel survives
+     -D DATA_PINS=2                     ; unused GPIO: this output only feeds the usermod
+     -D PIXEL_COUNTS=9                  ; one pixel per panel
+     -D BTNPIN=28
+     -D SERVERNAME='"Nanoleaf Shapes"'
+     -D MDNS_NAME='"nanoleaf-wled"'
+   board_build.flash_mode = dio
+   board_build.arduino.memory_type = dio_qspi
+   board_upload.before_reset = no-reset
+   board_upload.after_reset = watchdog-reset
+   ```
+   For the WT0132C6-S5 (ESP32-C6), use `extends = env:esp32c6dev_4MB` (and the same in `build_flags`),
+   `LEAFBUS_TX_PIN=3`, `LEAFBUS_RX_PIN=10` and `BTNPIN=9`.
+4. **Build:** `pio run -e esp32c5_nanoleaf`. It uses 69 % of the flash on the C5 and 85 % on the C6.
 
-Pin defaults are the tested ESPC5-12 (ESP32-C5) values; the WT0132C6-S5 (ESP32-C6) build uses
-TX 3 / RX 10 and is **untested**. Both can also be set at runtime in the usermod settings.
+Pin defaults are the tested ESPC5-12 (ESP32-C5) values; the ESP32-C6 pins come from the schematic and are
+**untested**. Both can also be set at runtime in the usermod settings.
+
+**Flashing** works the same as for the core patch; see [Flash](../../core-patch/README.md#flash). The images
+are in `.pio/build/<environment>/`. For updates over Wi-Fi, note the WLED firmware-check bug described
+there: without the core patch's fix, tick **Ignore firmware validation** when uploading.
 
 ## Setup
 
@@ -74,3 +99,6 @@ hand-made `/ledmap.json` is left alone.
 - Panel brightness is set to full at enumeration; WLED does its own scaling.
 - Hexagons are untested — the geometry is implemented but only Mini Triangles and Triangles have been
   verified on hardware.
+- A panel plugged in while WLED runs isn't picked up until WLED restarts: the bus re-enumerates on the panels'
+  hot-plug marker, and a newly added panel doesn't reliably trigger one. Removals are detected from that marker
+  or from missing replies.
