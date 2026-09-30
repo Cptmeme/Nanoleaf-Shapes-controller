@@ -19,7 +19,7 @@
 #define ENUM_GAP_MIN_MS 250   // gap after an enumeration; doubles while they come back to back
 #define ENUM_GAP_MAX_MS 3000  // the stock controller retries an empty edge every 3 s (§4.2)
 #define ENUM_QUIET_MS  5000   // this long without an enumeration resets the gap
-#define SETTLE_MS      1000   // enumerate once more after a hot-plug, for panels still starting up
+#define LAYOUT_CHECK_MS 1000  // re-read the layout this often: an added panel is not reliably reported by CC
 
 static const char *TAG = "bus";
 
@@ -439,6 +439,24 @@ esp_err_t pb_enumerate(void)
     return err;
 }
 
+// Root detect and one layout detect, without adopting the result. True if a complete string came back and
+// it differs from the enumerated one. A panel plugged in while running joins only through a fresh 00 + 80:
+// on the real assembly it stayed unclaimed (dim white) until the next enumeration (2026-09-29).
+static bool layout_changed(void)
+{
+    static const uint8_t root_detect[] = { PB_ROOT_DETECT };
+    static uint8_t buf[PB_MAX_LAYOUT];
+    int heard = 0;
+
+    pb_lock();
+    pb_xact(root_detect, sizeof root_detect, NULL, 0, PB_EXPECT_NONE, 0, NULL);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    int len = layout_detect(buf, 200 + 40 * s_state.npanels, &heard);
+    bool changed = len > 0 && (len != (int)s_state.layout_len || memcmp(buf, s_state.layout, len) != 0);
+    pb_unlock();
+    return changed;
+}
+
 // --- polling and colour (§6) --------------------------------------------------
 
 int pb_bulk_pull(void)
@@ -614,11 +632,11 @@ static void auto_enumerate(const char *why)
 }
 
 // Nobody is there to type `enum` when WLED or Matter drives the panels: enumerate at start-up, retry
-// while nothing answers, and straight after a hot-plug. A second later, enumerate once more for panels
-// that were still starting up. Enumerations that keep coming back to back are spaced out, up to 3 s.
+// while nothing answers, and straight after a hot-plug. Once a second, the layout is read again to catch
+// panels that were added without a CC. Enumerations that keep coming back to back are spaced out, up to 3 s.
 static void poll_task(void *arg)
 {
-    int64_t last_enum = 0, next_enum = 0, settle_at = 0;
+    int64_t last_enum = 0, next_enum = 0, next_check = 0;
     int gap_ms = ENUM_GAP_MIN_MS;
 
     for (;;) {
@@ -627,17 +645,20 @@ static void poll_task(void *arg)
             continue;
         }
         int64_t now = esp_timer_get_time();
-        const char *why = s_state.npanels == 0          ? "no panels"
-                        : s_state.hotplug               ? "hot-plug"
-                        : settle_at && now >= settle_at ? "settle check"
-                        : NULL;
+        const char *why = s_state.npanels == 0 ? "no panels" : s_state.hotplug ? "hot-plug" : NULL;
         if (why && now >= next_enum) {
             bool quiet = last_enum == 0 || now - last_enum > ENUM_QUIET_MS * 1000LL;
             gap_ms = quiet ? ENUM_GAP_MIN_MS : (gap_ms * 2 < ENUM_GAP_MAX_MS ? gap_ms * 2 : ENUM_GAP_MAX_MS);
             last_enum = now;
             next_enum = now + gap_ms * 1000LL;
-            settle_at = s_state.hotplug ? now + SETTLE_MS * 1000LL : 0;
+            next_check = now + LAYOUT_CHECK_MS * 1000LL;
             auto_enumerate(why);
+        } else if (s_state.npanels > 0 && !s_state.hotplug && now >= next_check) {
+            next_check = now + LAYOUT_CHECK_MS * 1000LL;
+            if (layout_changed()) {
+                s_state.hotplug = true;
+                ESP_LOGW(TAG, "hot-plug (layout changed), re-enumerating");
+            }
         } else if (s_state.npanels > 0) {
             pb_bulk_pull();   // keeps the panels polled while an enumeration waits for its gap
         }

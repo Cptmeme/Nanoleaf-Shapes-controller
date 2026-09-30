@@ -123,9 +123,11 @@ The engine is in `main/panelbus.c`:
   until the same value comes back twice, because the head of the string can arrive corrupted on large
   assemblies.
 - **Automatic enumeration:** runs at boot and straight after a hot-plug. A hot-plug is a `CC` marker at the
-  end of a poll reply, pairs from panels that were never enumerated, or three short replies in a row. A
-  second later it enumerates once more, to catch a panel that was still starting up. While nothing answers,
-  it retries after 0.25, 0.5, 1 and 2 s, then every 3 s, like the stock controller; bursts of hot-plugs are
-  spaced out the same way. A hot-plug marker always shows up once after the controller itself restarts.
+  end of a poll reply, pairs from panels that were never enumerated, three short replies in a row, or a
+  layout string that differs from the enumerated one. The layout is re-read once a second, because a panel
+  plugged in while running stays unclaimed (dim white) until the next `00` + `80`. While nothing answers,
+  enumeration retries after 0.25, 0.5, 1 and 2 s, then every 3 s, like the stock controller; bursts of
+  hot-plugs are spaced out the same way. A hot-plug marker always shows up once after the controller itself
+  restarts.
 - **Colour frames (`E0 03` + one chunk per panel):** chunks go in reverse layout order. **The poll reply
   (`C0`) comes in layout order.** See [protocol notes](../docs/protocol-notes.md).
