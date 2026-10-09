@@ -4,9 +4,9 @@
  * Nanoleaf Shapes panels as a WLED usermod.
  *
  * Same bus driver as the earlier TYPE_LEAFBUS core patch, restructured so it needs no changes to
- * WLED itself. WLED renders into whatever LED output is configured; this usermod copies the first
- * N pixels out of the rendered frame in handleOverlayDraw() and a background task pushes them to
- * the panels. The bus is never touched from the WLED loop, so a slow panel chain cannot stall
+ * WLED itself. WLED renders into whatever LED output is configured; handleOverlayDraw() turns the
+ * rendered frame into one colour per panel and a background task pushes them to the panels. With the
+ * generated 2D map every panel takes all the cells under it (leafbus_weights.h). The bus is never touched from the WLED loop, so a slow panel chain cannot stall
  * effects.
  *
  * Protocol reference: https://github.com/MyrikLD/LeafBus (PROTOCOL.md, MIT). Two points differ
@@ -22,7 +22,9 @@
 #include "wled.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
+#include "hal/gpio_ll.h"
 #include "leafbus_geometry.h"
+#include "leafbus_weights.h"
 
 static constexpr uint8_t  LB_ROOT_DETECT    = 0x00;   // panels note the connector facing the master
 static constexpr uint8_t  LB_LAYOUT_DETECT  = 0x80;   // reply: layout string ending in LB_TERMINATOR
@@ -39,6 +41,7 @@ static constexpr uint32_t LB_POLL_MS        = 50;     // stock cadence; unpolled
 static constexpr uint32_t LB_MIN_FRAME_MS   = 25;     // at most 40 colour frames per second
 static constexpr uint32_t LB_RETRY_MS       = 5000;   // enumeration retry while nothing answers
 static constexpr uint32_t LB_REENUM_MS      = 2000;   // enumeration retry after a hot-plug
+static constexpr uint32_t LB_LAYOUT_CHECK_MS = 1000;  // re-read the layout this often: an added panel is not reliably reported by CC
 static constexpr uint32_t LB_ECHO_MS        = 5;
 static constexpr uint32_t LB_LONG_WINDOW_MS = 1500;   // far panels can be slow to relay the layout
 static constexpr uint8_t  LB_MISS_LIMIT     = 20;     // unanswered polls before re-enumerating
@@ -50,7 +53,8 @@ static constexpr int      LB_EXPECT_TERMINATOR = -1;
 static constexpr char     LB_LEDMAP[]       = "/ledmap.json";
 static constexpr char     LB_MAP_MARK[]     = "\"generator\":\"nanoleaf-shapes\"";   // tags maps written here
 
-#if defined(SOC_UART_HP_NUM) && SOC_UART_HP_NUM > 2
+// The original ESP32 loses UART2's pin routing shortly after start-up under WLED, so it stays on UART1
+#if defined(SOC_UART_HP_NUM) && SOC_UART_HP_NUM > 2 && !defined(CONFIG_IDF_TARGET_ESP32)
 static constexpr uart_port_t LB_UART = UART_NUM_2;
 #else
 static constexpr uart_port_t LB_UART = UART_NUM_1;
@@ -63,6 +67,11 @@ static constexpr uart_port_t LB_UART = UART_NUM_1;
 #endif
 #ifndef LEAFBUS_RX_PIN
   #define LEAFBUS_RX_PIN 27
+#endif
+// 1 for LeafBus wiring (a resistor straight to the panel's DATA pad, no buffers): TX must release the line
+// for the panels to answer.
+#ifndef LEAFBUS_OPEN_DRAIN
+  #define LEAFBUS_OPEN_DRAIN 0
 #endif
 
 class UsermodNanoleafShapes : public Usermod {
@@ -78,15 +87,39 @@ class UsermodNanoleafShapes : public Usermod {
     // to take a consistent copy of the frame. Only memcpy-grade work happens here.
     void handleOverlayDraw() override {
       if (!running || !_frame) return;
-      const unsigned avail  = strip.getLengthTotal();
-      const unsigned panels = _panels;                       // sampled once: the task may change it
+      const unsigned total  = strip.getLengthTotal();
+      const unsigned panels = std::min<unsigned>(_panels, LB_MAX_PANELS);   // sampled once: the task may change it
       if (!panels) return;
       const unsigned bri = strip.getBrightness() + 1;
+      // The render buffer holds colours before gamma: show() applies it on the way to the physical outputs, so
+      // the panels need it here, under the same condition.
+      const bool gamma = gammaCorrectCol && !(realtimeMode && arlsDisableGammaCorrection && !realtimeOverride);
       if (xSemaphoreTake(_lock, 0) != pdTRUE) return;        // never wait in the render path
-      for (unsigned i = 0; i < panels && i < LB_MAX_PANELS; i++) {
-        uint8_t *p = _frame + i * 4;
-        if (i >= avail) { p[0] = p[1] = p[2] = p[3] = 0; continue; }
-        uint32_t c = strip.getPixelColor(i);
+      if (weightsMatch(panels)) {
+        for (unsigned i = 0; i < panels; i++) {
+          uint32_t c = leafbus::samplePanel(_weights, i, [](uint16_t n) { return strip.getPixelColorNoMap(n); });
+          if (c && gamma) c = gamma32(c);
+          uint8_t *p = _frame + i * 4;
+          p[0] = (R(c) * bri) >> 8;
+          p[1] = (G(c) * bri) >> 8;
+          p[2] = (B(c) * bri) >> 8;
+          p[3] = (W(c) * bri) >> 8;
+        }
+        _framePixels = panels;
+        _dirty = true;
+        xSemaphoreGive(_lock);
+        if (_task) xTaskNotifyGive(_task);
+        return;
+      }
+      // Without a generated map: the render buffer is indexed by matrix cell; walk it through the ledmap the way strip.show() does, so
+      // panel i gets the cell that maps to physical LED i. Panels no cell maps to stay black.
+      memset(_frame, 0, panels * 4);
+      for (unsigned n = 0; n < total; n++) {
+        const unsigned led = strip.getMappedPixelIndex(n);
+        if (led >= panels) continue;
+        uint32_t c = strip.getPixelColorNoMap(n);
+        if (c && gamma) c = gamma32(c);
+        uint8_t *p = _frame + led * 4;
         p[0] = (R(c) * bri) >> 8;
         p[1] = (G(c) * bri) >> 8;
         p[2] = (B(c) * bri) >> 8;
@@ -113,6 +146,7 @@ class UsermodNanoleafShapes : public Usermod {
       top[F("enabled")]  = enabled;
       top[F("txPin")]    = txPin;
       top[F("rxPin")]    = rxPin;
+      top[F("openDrain")] = openDrain;  // TX open drain, for unbuffered LeafBus wiring
       top[F("autoMap")]  = autoMap;      // maintain /ledmap.json from the panel layout
       top[F("rotation")] = rotation;     // degrees, rotates that map
     }
@@ -122,13 +156,18 @@ class UsermodNanoleafShapes : public Usermod {
       if (top.isNull()) return false;
       const bool    wasEnabled = enabled;
       const int8_t  oldTx = txPin, oldRx = rxPin;
+      const bool    oldOpenDrain = openDrain;
       getJsonValue(top[F("enabled")],  enabled);
       getJsonValue(top[F("txPin")],    txPin);
       getJsonValue(top[F("rxPin")],    rxPin);
+      getJsonValue(top[F("openDrain")], openDrain);
+      const bool    oldAutoMap = autoMap;
       getJsonValue(top[F("autoMap")],  autoMap);
+      const int16_t oldRotation = rotation;
       getJsonValue(top[F("rotation")], rotation);
       rotation = ((rotation % 360) + 360) % 360;
-      if (initDone && (enabled != wasEnabled || txPin != oldTx || rxPin != oldRx)) {
+      if (initDone && (autoMap != oldAutoMap || rotation != oldRotation)) _mapDone = false;
+      if (initDone && (enabled != wasEnabled || txPin != oldTx || rxPin != oldRx || openDrain != oldOpenDrain)) {
         stop();
         if (enabled) start();
       }
@@ -142,6 +181,7 @@ class UsermodNanoleafShapes : public Usermod {
     bool    enabled  = true;
     int8_t  txPin    = LEAFBUS_TX_PIN;
     int8_t  rxPin    = LEAFBUS_RX_PIN;
+    bool    openDrain = LEAFBUS_OPEN_DRAIN;
     bool    autoMap  = true;
     int16_t rotation = 0;
 
@@ -161,10 +201,11 @@ class UsermodNanoleafShapes : public Usermod {
     volatile uint16_t _panels = 0;        // panels found by the last enumeration, 0 = none
     bool     _hotplug = false;
     uint8_t  _missRun = 0;
-    uint32_t _lastPoll = 0, _lastPush = 0, _nextEnum = 0;
+    uint32_t _lastPoll = 0, _lastPush = 0, _nextEnum = 0, _lastCheck = 0;
     uint8_t  _layout[LB_MAX_LAYOUT];
     size_t   _layoutLen = 0;
-    bool     _mapDone = false;
+    volatile bool _mapDone = false;       // cleared by a settings change from the web server task
+    leafbus::WeightTable _weights;        // guarded by _lock; empty without a generated map
 
     static const char _name[];
 
@@ -194,8 +235,13 @@ class UsermodNanoleafShapes : public Usermod {
       _uartInstalled = uart_driver_install(LB_UART, LB_RX_BUFFER, 0, 0, nullptr, 0) == ESP_OK;
       if (!_uartInstalled
           || uart_param_config(LB_UART, &cfg) != ESP_OK
-          || uart_set_pin(LB_UART, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK
-          || xTaskCreate(taskEntry, "LeafBus", 8192, this, 2, &_task) != pdPASS) {
+          || uart_set_pin(LB_UART, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK) {
+        stop();
+        return;
+      }
+      // uart_set_pin leaves the pad push-pull; this flips only the pad driver, not the UART routing
+      if (openDrain) gpio_ll_od_enable(&GPIO, (gpio_num_t)txPin);
+      if (xTaskCreate(taskEntry, "LeafBus", 8192, this, 2, &_task) != pdPASS) {
         _task = nullptr;
         stop();
         return;
@@ -245,6 +291,14 @@ class UsermodNanoleafShapes : public Usermod {
           }
           continue;
         }
+        if (now - _lastCheck >= LB_LAYOUT_CHECK_MS) {
+          _lastCheck = now;
+          if (layoutChanged()) {
+            _hotplug = true;
+            continue;
+          }
+        }
+        if (!_mapDone && _layoutLen) updateLedmap();
         if (_dirty && now - _lastPush >= LB_MIN_FRAME_MS) push();
         if (now - _lastPoll >= LB_POLL_MS) poll();
       }
@@ -339,20 +393,54 @@ class UsermodNanoleafShapes : public Usermod {
       if (!_mapDone && _layoutLen) updateLedmap();
     }
 
+    // Root detect and one layout detect, without adopting the result. True if a complete string came back with
+    // other panels than the enumerated one. A panel plugged in while running joins only through a fresh 00 + 80.
+    bool layoutChanged() {
+      static const uint8_t rootDetect[]   = {LB_ROOT_DETECT};
+      static const uint8_t layoutDetect[] = {LB_LAYOUT_DETECT};
+      uint8_t cur[LB_MAX_LAYOUT];
+      if (!_layoutLen) return false;
+      send(rootDetect, sizeof(rootDetect));
+      vTaskDelay(pdMS_TO_TICKS(20));
+      send(layoutDetect, sizeof(layoutDetect));
+      size_t n = receive(cur, sizeof(cur), LB_EXPECT_TERMINATOR, 200 + 40 * _panels);
+      const uint8_t *end = (const uint8_t*)memchr(cur, LB_TERMINATOR, n);
+      if (!end) return false;
+      return !sameNodes(cur, end - cur + 1, _layout, _layoutLen);
+    }
+
+    // Compares only the node bytes (bit 7 set). In a ring, the separator at the dropped link flips between 04
+    // and 05 from one read to the next (protocol-notes.md §4); an added or removed panel always changes the nodes.
+    static bool sameNodes(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen) {
+      size_t i = 0, j = 0;
+      for (;;) {
+        while (i < alen && !(a[i] & 0x80)) i++;
+        while (j < blen && !(b[j] & 0x80)) j++;
+        if (i == alen || j == blen) return i == alen && j == blen;
+        if (a[i++] != b[j++]) return false;
+      }
+    }
+
     // Keep /ledmap.json in step with the physical layout, so WLED's 2D effects follow the wall: one
     // matrix cell per panel, placed with the LeafBus geometry, gaps elsewhere. A missing map or one
     // written here is replaced; a hand-made one is left alone.
     void updateLedmap() {
       _mapDone = true;
-      if (!autoMap) return;
+      if (!autoMap) { setWeights(leafbus::WeightTable()); return; }
       leafbus::Panel panels[leafbus::MAX_PANELS];
       uint16_t cells[leafbus::MAX_PANELS];
       uint8_t width = 0, height = 0;
+      leafbus::GridTransform xf;
       int n = leafbus::parseLayout(_layout, _layoutLen - 1, panels, leafbus::MAX_PANELS);
-      if (n <= 0 || !leafbus::placePanels(panels, n) || !leafbus::gridPanels(panels, n, rotation, width, height, cells)) {
+      if (n <= 0 || !leafbus::placePanels(panels, n) ||
+          !leafbus::gridPanels(panels, n, rotation, width, height, cells, &xf)) {
         DEBUG_PRINTLN(F("LeafBus: layout not mappable to 2D"));
+        setWeights(leafbus::WeightTable());
         return;
       }
+      leafbus::WeightTable table;
+      leafbus::buildWeights(panels, n, rotation, width, height, xf, table);
+      setWeights(std::move(table));
 
       String json;
       json.reserve(128 + 2 * _layoutLen + 4U * width * height);
@@ -386,6 +474,7 @@ class UsermodNanoleafShapes : public Usermod {
         if (old == json) return; // already matches this layout
         if (old.indexOf(LB_MAP_MARK) < 0) {
           DEBUG_PRINTLN(F("LeafBus: keeping the hand-made /ledmap.json"));
+          setWeights(leafbus::WeightTable());
           return;
         }
       }
@@ -400,6 +489,21 @@ class UsermodNanoleafShapes : public Usermod {
       strip.makeAutoSegments(true); // segments must span the new matrix
       strip.resume();
       DEBUG_PRINTF_P(PSTR("LeafBus: 2D map %ux%u for %d panels\n"), width, height, n);
+    }
+
+    // The table only applies to the matrix it was built for; anything else falls back to one cell per panel.
+    bool weightsMatch(unsigned panels) const {
+      return _weights.panels.size() == panels && strip.isMatrix &&
+             Segment::maxWidth == _weights.width && Segment::maxHeight == _weights.height;
+    }
+
+    void setWeights(leafbus::WeightTable &&table) {
+      if (xSemaphoreTake(_lock, pdMS_TO_TICKS(100)) != pdTRUE) {
+        _mapDone = false; // try again on the next pass
+        return;
+      }
+      std::swap(_weights, table);
+      xSemaphoreGive(_lock);
     }
 
     void poll() {
