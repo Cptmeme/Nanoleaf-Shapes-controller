@@ -5,8 +5,10 @@ if(NOT DEFINED ENV{ESP_MATTER_PATH})
     message(FATAL_ERROR "Please set ESP_MATTER_PATH to the path of the esp-matter repository")
 endif()
 
-set(PROJECT_VER "1.0")
-set(PROJECT_VER_NUMBER 1)
+# Firmware version. Bump both for every OTA release, together with
+# CONFIG_DEVICE_SOFTWARE_VERSION_NUMBER in sdkconfig (checked below).
+set(PROJECT_VER "1.1")
+set(PROJECT_VER_NUMBER 2)
 
 set(ESP_MATTER_PATH $ENV{ESP_MATTER_PATH})
 set(MATTER_SDK_PATH ${ESP_MATTER_PATH}/connectedhomeip/connectedhomeip)
@@ -38,6 +40,14 @@ set(EXTRA_COMPONENT_DIRS
     ${extra_components_dirs_append})
 
 project(nanoleaf_matter)
+
+# The OTA image header carries PROJECT_VER_NUMBER, the device reports
+# CONFIG_DEVICE_SOFTWARE_VERSION_NUMBER. If they differ, an update is either
+# re-downloaded forever or reported as failed.
+if(NOT CONFIG_DEVICE_SOFTWARE_VERSION_NUMBER EQUAL PROJECT_VER_NUMBER)
+    message(FATAL_ERROR "CONFIG_DEVICE_SOFTWARE_VERSION_NUMBER (${CONFIG_DEVICE_SOFTWARE_VERSION_NUMBER}) "
+                        "must equal PROJECT_VER_NUMBER (${PROJECT_VER_NUMBER})")
+endif()
 
 idf_build_set_property(CXX_COMPILE_OPTIONS "-std=gnu++17;-Os;-DCHIP_HAVE_CONFIG_H;-Wno-overloaded-virtual" APPEND)
 idf_build_set_property(C_COMPILE_OPTIONS "-Os" APPEND)

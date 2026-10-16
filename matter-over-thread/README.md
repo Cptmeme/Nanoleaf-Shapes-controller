@@ -68,10 +68,56 @@ firmware, `download` on its console does it. Then:
 ```
 
 The board has no auto-reset, so press EN afterwards to start the firmware. Later versions can be
-delivered by Matter OTA (the OTA requestor is enabled).
+delivered by Matter OTA (see [Updating the firmware](#updating-the-firmware)).
 
 To update a board that's already paired, leave out `erase-flash`. The pairing lives in the `nvs`
 partition, which `flash` doesn't touch.
+
+## Updating the firmware
+
+### Versions
+
+Bump all three for every release, or the board ignores the update. The build fails if the two numbers
+differ.
+
+- `PROJECT_VER` (e.g. `"1.1"`) and `PROJECT_VER_NUMBER` (e.g. `2`) in `CMakeLists.txt`
+- `CONFIG_DEVICE_SOFTWARE_VERSION_NUMBER` in `sdkconfig` / `sdkconfig.defaults` (same number)
+
+### Over serial
+
+`./build.sh -p /dev/cu.usbserial-XXXX flash`, as under [Flash](#flash), still works. It is also the only
+way to write the bootloader, and the automatic rollback below needs the bootloader from this build. A
+board that is only ever updated over the air still updates fine; it just won't roll back.
+
+### Over the air (Matter OTA over Thread)
+
+The build also produces `build/nanoleaf_matter-ota.bin`, a Matter OTA image. Build it for the board's
+chip (C5 or C6): both use the same product ID, so an image for the other chip is only rejected after the
+download. Apple Home and Google Home only update certified devices, so you serve it yourself with the
+Matter SDK's host tools. Build them from the SDK with
+`./scripts/build/build_examples.py --target darwin-arm64-chip-tool --target darwin-arm64-ota-provider build`.
+
+One-time setup: in your controller app, turn on pairing mode for the board, then add the provider and the
+board to `chip-tool`'s fabric:
+
+```sh
+chip-tool pairing code 2 <setup-code-from-home-app>              # board = node 2
+chip-ota-provider-app -f build/nanoleaf_matter-ota.bin --discriminator 3841 --secured-device-port 5565 &
+chip-tool pairing onnetwork-long 1 20202021 3841                 # provider = node 1
+chip-tool accesscontrol write acl '[{"fabricIndex": 1, "privilege": 5, "authMode": 2, "subjects": [112233], "targets": null}, {"fabricIndex": 1, "privilege": 3, "authMode": 2, "subjects": null, "targets": [{"cluster": 41, "endpoint": null, "deviceType": null}]}]' 1 0
+```
+
+Each update (with the provider running and serving the new `nanoleaf_matter-ota.bin`):
+
+```sh
+chip-tool otasoftwareupdaterequestor announce-otaprovider 1 0 2 0 2 0
+chip-tool basicinformation read software-version 2 0              # afterwards: the new number
+```
+
+Thread is slow for this: about 12 minutes per 1.5 MB, so roughly 15 minutes for this image. The board
+then restarts into the new version and keeps it once it has run for a minute while attached to the Thread
+network. If it doesn't get there within 5 minutes, or crashes before that, the bootloader automatically
+returns to the previous version.
 
 ## Commission
 
