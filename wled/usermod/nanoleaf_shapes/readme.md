@@ -77,7 +77,10 @@ there: without the core patch's fix, tick **Ignore firmware validation** when up
    aren't using. **Pick an RGBW type** (e.g. SK6812 RGBW): the panels have separate white LEDs, and an
    RGB-only output loses the W channel — `R=G=B=255, W=0` comes out visibly blue.
 2. Open **Config → Usermods** and set **TX GPIO** and **RX GPIO** to the panel bus pins.
-3. The panels enumerate within a few seconds. Panel count appears in the info panel on the main UI.
+3. The panels enumerate within a few seconds. Panel count appears in the info panel on the main UI; it links
+   to `/nanoleaf.svg`, a drawing of the assembly with each panel's pixel index and a green dot where the
+   controller plugs in. It follows `rotation`, so it shows the wall the way the generated map sees it; the
+   same drawing sits under the **Rotation** field in the usermod settings.
 
 | Setting | Meaning |
 |---|---|
