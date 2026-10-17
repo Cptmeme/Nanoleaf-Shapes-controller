@@ -81,7 +81,7 @@ class UsermodNanoleafShapes : public Usermod {
   public:
     void setup() override {
       _svgLock = xSemaphoreCreateMutex();
-      server.on(LB_SVG_URL, HTTP_GET, [this](AsyncWebServerRequest *request) { serveSvg(request); });
+      if (_svgLock) server.on(LB_SVG_URL, HTTP_GET, [this](AsyncWebServerRequest *request) { serveSvg(request); });
       if (enabled) start();
       initDone = true;
     }
@@ -169,8 +169,9 @@ class UsermodNanoleafShapes : public Usermod {
     // The layout drawing under the rotation field, so a new angle can be checked after saving. Index 1: each
     // field is preceded by a hidden input.
     void appendConfigData(Print &settingsScript) override {
-      settingsScript.print(F("addInfo('NanoleafShapes:rotation',1,'<br><img src=\"/nanoleaf.svg\""
-                             " style=\"max-width:100%;max-height:320px\" onerror=\"this.remove()\">');"));
+      settingsScript.print(F("addInfo('NanoleafShapes:rotation',1,'<br><img src=\""));
+      settingsScript.print(LB_SVG_URL);
+      settingsScript.print(F("\" style=\"max-width:100%;max-height:320px\" onerror=\"this.remove()\">');"));
     }
 
     bool readFromConfig(JsonObject &root) override {
