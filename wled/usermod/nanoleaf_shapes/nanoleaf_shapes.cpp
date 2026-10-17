@@ -42,6 +42,7 @@ static constexpr uint32_t LB_MIN_FRAME_MS   = 25;     // at most 40 colour frame
 static constexpr uint32_t LB_RETRY_MS       = 5000;   // enumeration retry while nothing answers
 static constexpr uint32_t LB_REENUM_MS      = 2000;   // enumeration retry after a hot-plug
 static constexpr uint32_t LB_LAYOUT_CHECK_MS = 1000;  // re-read the layout this often: an added panel is not reliably reported by CC
+static constexpr uint32_t LB_LAYOUT_CHECK_MAX_MS = 16000; // back-off cap while the layout probe goes unanswered
 static constexpr uint32_t LB_ECHO_MS        = 5;
 static constexpr uint32_t LB_LONG_WINDOW_MS = 1500;   // far panels can be slow to relay the layout
 static constexpr uint8_t  LB_MISS_LIMIT     = 20;     // unanswered polls before re-enumerating
@@ -202,6 +203,7 @@ class UsermodNanoleafShapes : public Usermod {
     bool     _hotplug = false;
     uint8_t  _missRun = 0;
     uint32_t _lastPoll = 0, _lastPush = 0, _nextEnum = 0, _lastCheck = 0;
+    uint32_t _checkEvery = LB_LAYOUT_CHECK_MS;
     uint8_t  _layout[LB_MAX_LAYOUT];
     size_t   _layoutLen = 0;
     volatile bool _mapDone = false;       // cleared by a settings change from the web server task
@@ -291,9 +293,11 @@ class UsermodNanoleafShapes : public Usermod {
           }
           continue;
         }
-        if (now - _lastCheck >= LB_LAYOUT_CHECK_MS) {
-          _lastCheck = now;
-          if (layoutChanged()) {
+        // skipped while polls go unanswered, so LB_MISS_LIMIT trips at the poll cadence
+        if (_missRun == 0 && now - _lastCheck >= _checkEvery) {
+          bool changed = layoutChanged();
+          _lastCheck = millis(); // an unanswered probe blocks for its whole window
+          if (changed) {
             _hotplug = true;
             continue;
           }
@@ -382,6 +386,7 @@ class UsermodNanoleafShapes : public Usermod {
       _panels = panels;
       _hotplug = false;
       _missRun = 0;
+      _checkEvery = LB_LAYOUT_CHECK_MS;
       if (!_panels) return;
 
       send(fullBright, sizeof(fullBright)); // WLED scales brightness itself; undo any dimming left by the stock controller
@@ -405,7 +410,11 @@ class UsermodNanoleafShapes : public Usermod {
       send(layoutDetect, sizeof(layoutDetect));
       size_t n = receive(cur, sizeof(cur), LB_EXPECT_TERMINATOR, 200 + 40 * _panels);
       const uint8_t *end = (const uint8_t*)memchr(cur, LB_TERMINATOR, n);
-      if (!end) return false;
+      if (!end) {
+        _checkEvery = std::min(_checkEvery * 2, LB_LAYOUT_CHECK_MAX_MS);
+        return false;
+      }
+      _checkEvery = LB_LAYOUT_CHECK_MS;
       return !sameNodes(cur, end - cur + 1, _layout, _layoutLen);
     }
 
