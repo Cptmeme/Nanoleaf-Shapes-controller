@@ -25,6 +25,7 @@
 #include "hal/gpio_ll.h"
 #include "leafbus_geometry.h"
 #include "leafbus_weights.h"
+#include "leafbus_svg.h"
 
 static constexpr uint8_t  LB_ROOT_DETECT    = 0x00;   // panels note the connector facing the master
 static constexpr uint8_t  LB_LAYOUT_DETECT  = 0x80;   // reply: layout string ending in LB_TERMINATOR
@@ -52,6 +53,7 @@ static constexpr size_t   LB_MAX_LAYOUT     = 256;
 static constexpr size_t   LB_RX_BUFFER      = 1024;
 static constexpr int      LB_EXPECT_TERMINATOR = -1;
 static constexpr char     LB_LEDMAP[]       = "/ledmap.json";
+static constexpr char     LB_SVG_URL[]      = "/nanoleaf.svg";
 static constexpr char     LB_MAP_MARK[]     = "\"generator\":\"nanoleaf-shapes\"";   // tags maps written here
 
 // The original ESP32 loses UART2's pin routing shortly after start-up under WLED, so it stays on UART1
@@ -78,6 +80,8 @@ static constexpr uart_port_t LB_UART = UART_NUM_1;
 class UsermodNanoleafShapes : public Usermod {
   public:
     void setup() override {
+      _svgLock = xSemaphoreCreateMutex();
+      if (_svgLock) server.on(LB_SVG_URL, HTTP_GET, [this](AsyncWebServerRequest *request) { serveSvg(request); });
       if (enabled) start();
       initDone = true;
     }
@@ -139,7 +143,17 @@ class UsermodNanoleafShapes : public Usermod {
       if (!enabled)      arr.add(F("disabled"));
       else if (!running) arr.add(F("init failed"));
       else if (!_panels) arr.add(F("no panels"));
-      else { arr.add(_panels); arr.add(F(" panels")); }
+      else if (!_haveSvg) { arr.add(_panels); arr.add(F(" panels")); }
+      else {
+        // The UI puts the value into its table as raw HTML: close the row and add a full-width one for the drawing.
+        String row(_panels);
+        row += F(" panels</td></tr><tr><td colspan=\"2\"><a href=\"");
+        row += LB_SVG_URL;
+        row += F("\" target=\"_blank\"><img src=\"");
+        row += LB_SVG_URL;
+        row += F("\" style=\"width:100%;max-height:320px\"></a>");
+        arr.add(row);
+      }
     }
 
     void addToConfig(JsonObject &root) override {
@@ -150,6 +164,14 @@ class UsermodNanoleafShapes : public Usermod {
       top[F("openDrain")] = openDrain;  // TX open drain, for unbuffered LeafBus wiring
       top[F("autoMap")]  = autoMap;      // maintain /ledmap.json from the panel layout
       top[F("rotation")] = rotation;     // degrees, rotates that map
+    }
+
+    // The layout drawing under the rotation field, so a new angle can be checked after saving. Index 1: each
+    // field is preceded by a hidden input.
+    void appendConfigData(Print &settingsScript) override {
+      settingsScript.print(F("addInfo('NanoleafShapes:rotation',1,'<br><img src=\""));
+      settingsScript.print(LB_SVG_URL);
+      settingsScript.print(F("\" style=\"max-width:100%;max-height:320px\" onerror=\"this.remove()\">');"));
     }
 
     bool readFromConfig(JsonObject &root) override {
@@ -208,6 +230,10 @@ class UsermodNanoleafShapes : public Usermod {
     size_t   _layoutLen = 0;
     volatile bool _mapDone = false;       // cleared by a settings change from the web server task
     leafbus::WeightTable _weights;        // guarded by _lock; empty without a generated map
+    // read by the web server task; a lock of its own, because stop() deletes _lock
+    SemaphoreHandle_t _svgLock = nullptr;
+    std::string       _svg;               // guarded by _svgLock; empty while no layout is placed
+    volatile bool     _haveSvg = false;
 
     static const char _name[];
 
@@ -277,6 +303,7 @@ class UsermodNanoleafShapes : public Usermod {
       _frame = nullptr;
       _panels = 0;
       _layoutLen = 0;
+      setSvg(std::string());
     }
 
     static void taskEntry(void *arg) { static_cast<UsermodNanoleafShapes*>(arg)->run(); }
@@ -435,14 +462,15 @@ class UsermodNanoleafShapes : public Usermod {
     // written here is replaced; a hand-made one is left alone.
     void updateLedmap() {
       _mapDone = true;
-      if (!autoMap) { setWeights(leafbus::WeightTable()); return; }
       leafbus::Panel panels[leafbus::MAX_PANELS];
       uint16_t cells[leafbus::MAX_PANELS];
       uint8_t width = 0, height = 0;
       leafbus::GridTransform xf;
       int n = leafbus::parseLayout(_layout, _layoutLen - 1, panels, leafbus::MAX_PANELS);
-      if (n <= 0 || !leafbus::placePanels(panels, n) ||
-          !leafbus::gridPanels(panels, n, rotation, width, height, cells, &xf)) {
+      const bool placed = n > 0 && leafbus::placePanels(panels, n);
+      setSvg(placed ? leafbus::layoutSvg(panels, n, rotation) : std::string());
+      if (!autoMap) { setWeights(leafbus::WeightTable()); return; }
+      if (!placed || !leafbus::gridPanels(panels, n, rotation, width, height, cells, &xf)) {
         DEBUG_PRINTLN(F("LeafBus: layout not mappable to 2D"));
         setWeights(leafbus::WeightTable());
         return;
@@ -513,6 +541,28 @@ class UsermodNanoleafShapes : public Usermod {
       }
       std::swap(_weights, table);
       xSemaphoreGive(_lock);
+    }
+
+    void setSvg(std::string &&svg) {
+      if (!_svgLock) return;
+      xSemaphoreTake(_svgLock, portMAX_DELAY);
+      std::swap(_svg, svg);
+      _haveSvg = !_svg.empty();
+      xSemaphoreGive(_svgLock);
+    }
+
+    void serveSvg(AsyncWebServerRequest *request) {
+      String body;
+      if (xSemaphoreTake(_svgLock, pdMS_TO_TICKS(100)) == pdTRUE) {
+        body = _svg.c_str();
+        xSemaphoreGive(_svgLock);
+      }
+      if (body.isEmpty()) request->send(404, FPSTR(CONTENT_TYPE_PLAIN), F("No panel layout yet"));
+      else {
+        AsyncWebServerResponse *response = request->beginResponse(200, F("image/svg+xml"), body);
+        response->addHeader(F("Cache-Control"), F("no-store"));  // changes with the layout and the rotation
+        request->send(response);
+      }
     }
 
     void poll() {
