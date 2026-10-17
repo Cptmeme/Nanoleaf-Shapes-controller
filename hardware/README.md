@@ -495,7 +495,7 @@ modelled from the numbers below.
 | File | Contents |
 |---|---|
 | `mechanical/linker.py` | Every linker and pad dimension, shared by the two scripts below |
-| `mechanical/pocket_test.py` → `pocket_test.stl`, `pocket_test_{lower,upper}.stl` | Printable test piece: the plate recess, one pocket with a PCB-height floor, and the two slots. Written whole and split at the latch ledge; pass a clearance (`python pocket_test.py 0.10`) for a tighter-gripping variant, named `_c010` |
+| `mechanical/pocket_test.py` → `pocket_test.stl`, `pocket_test_{lower,upper}.stl` (**not committed, run the script**) | Printable test piece: the plate recess, one pocket with a PCB-height floor, and the two slots. Written whole and split at the latch ledge; pass a clearance (`python pocket_test.py 0.10`) for a tighter-gripping variant, named `_c010` |
 | `mechanical/linker_footprint.py` → `nanoleaf.pretty/Nanoleaf_Linker_Pads.kicad_mod` | KiCad footprint: the three pads (bare copper, no paste), the slots on Edge.Cuts, and a courtyard for the printed pocket walls. The project's `fp-lib-table` names the library `nanoleaf` |
 
 Both scripts run with Python 3; the test piece also needs `pip install manifold3d numpy`. Checked in software
@@ -504,8 +504,8 @@ the pocket wall after 0.3 mm of pull.
 
 ### Test print
 
-Print the **split pair**, `pocket_test_lower.stl` and `pocket_test_upper.stl`, both as they come, bottom on the
-bed, and stack them on the two 3 mm registration pins. Neither half has an overhang. `pocket_test.stl` is the
+Run `python pocket_test.py` to generate the STLs, which are not kept in the repository. Print the **split
+pair**, `pocket_test_lower.stl` and `pocket_test_upper.stl`, both as they come, bottom on the bed, and stack them on the two 3 mm registration pins. Neither half has an overhang. `pocket_test.stl` is the
 same block in one piece, for reference and for a resin or machined part — on FDM it prints the ledge the barb
 catches as a cantilever reaching inward over the slot, so the latching corner is the droopiest point of an
 overhang and rounds away. Then push one end of a real rigid linker in:
@@ -876,9 +876,8 @@ glue it to the back. Both halves and the one-piece mock clear the tray, the lid 
 
 ### Rounded outside, and a lid that clicks in
 
-Two changes on 2026-10-13. The version before them is kept whole in
-`mechanical/case_v1_working/` -- sources, `parts.json` and all five STLs -- because it was the one
-verified against the board and is the fallback if anything here turns out to break PCB fit.
+Two changes on 2026-10-13. The version before them is in the git history at commit `11ddc18`, under
+`mechanical/case_v1_working/`, if a fallback is ever needed.
 
 **Rounded corners and edges.** `case_profile()` now rounds its four corners by `CORNER_R` 2.00 mm,
 shrinking and regrowing with round joins so the straight runs stay exactly where they were. The outer
