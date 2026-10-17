@@ -146,11 +146,18 @@ inline bool placePanels(Panel *p, int n) {
   return true;
 }
 
+// Where the grid of gridPanels() lies: the centre of cell (column, row) is at
+// (minX + column * stepX, maxY - row * stepY) mm in the rotated layout.
+struct GridTransform {
+  float minX, maxY, stepX, stepY;
+};
+
 // Assign each panel its own grid cell after rotating the layout by rotationDeg (counter-clockwise): the panel
 // lattice for multiples of 60 degrees, otherwise a grid of square cells.
 // Row 0 is the top. cells[i] = row * width + column for panel i. Returns false if no grid of at most
-// 255 x 255 separates every panel.
-inline bool gridPanels(const Panel *p, int n, float rotationDeg, uint8_t &width, uint8_t &height, uint16_t *cells) {
+// 255 x 255 separates every panel. If xf is given, it receives the cell geometry.
+inline bool gridPanels(const Panel *p, int n, float rotationDeg, uint8_t &width, uint8_t &height, uint16_t *cells,
+                       GridTransform *xf = nullptr) {
   if (n <= 0) return false;
   float xs[MAX_PANELS], ys[MAX_PANELS];
   if (n > MAX_PANELS) return false;
@@ -177,6 +184,7 @@ inline bool gridPanels(const Panel *p, int n, float rotationDeg, uint8_t &width,
     if (!clash) {
       width = (uint8_t)w;
       height = (uint8_t)h;
+      if (xf) *xf = GridTransform{minX, maxY, LATTICE_X, LATTICE_Y};
       return true;
     }
   }
@@ -202,6 +210,7 @@ inline bool gridPanels(const Panel *p, int n, float rotationDeg, uint8_t &width,
     if (!clash) {
       width = (uint8_t)w;
       height = (uint8_t)h;
+      if (xf) *xf = GridTransform{minX, maxY, step, step};
       return true;
     }
   }
