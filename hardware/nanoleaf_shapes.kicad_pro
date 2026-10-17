@@ -133,7 +133,7 @@
         "too_many_vias": "error",
         "track_angle": "error",
         "track_dangling": "warning",
-        "track_not_centered_on_via": "ignore",
+        "track_not_centered_on_via": "warning",
         "track_on_post_machined_layer": "error",
         "track_segment_length": "error",
         "track_width": "error",
@@ -146,7 +146,7 @@
       },
       "rules": {
         "max_error": 0.005,
-        "min_clearance": 0.0,
+        "min_clearance": 0.2,
         "min_connection": 0.0,
         "min_copper_edge_clearance": 0.5,
         "min_groove_width": 0.0,
@@ -525,7 +525,7 @@
     "classes": [
       {
         "bus_width": 12,
-        "clearance": 0.2,
+        "clearance": 0.1,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -726,7 +726,7 @@
         "uuid": "3ef87dfb-6078-4829-ba28-834bf74a924a"
       }
     ],
-    "used_designators": "SW1-2,L1,R1-10,C1-21,D1-2,U1-4,J1-2",
+    "used_designators": "J1-2,U1-4,D1-2,C1-21,R1-10,L1,SW1-2",
     "variants": []
   },
   "sheets": [

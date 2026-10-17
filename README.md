@@ -26,13 +26,13 @@ It runs one of four firmwares:
 > fork and ring layouts, with WLED (the core-patch build), with the ESP-IDF firmware, and as a Matter light in
 > a Thread network.
 > Hexagons and large Triangles are handled by the code but have not been tested on real panels yet. A
-> **rev B board is in development**; see [Next version](#next-version-rev-b).
+> **Rev B is on order and has not been verified on hardware.** Rev A, described below, is the version that is built and working. See [Next version](#next-version-rev-b).
 
 ## Repository
 
 | Path | Contents |
 |---|---|
-| [`hardware/`](hardware/) | KiCad project (schematic and PCB), plus `Gerbers/` and the JLCPCB assembly files (`jlc_bom.csv`, `jlc_cpl.csv`) |
+| [`hardware/`](hardware/) | Rev B KiCad project (schematic and PCB), fabrication files in `fab/`, and the enclosure sources in `mechanical/`. **Not yet verified on hardware** |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
 | [`wled/`](wled/) | WLED integration: the usermod (recommended) and the original core patch, each with build instructions |
 | [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |

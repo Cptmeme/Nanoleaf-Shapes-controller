@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "nanoleaf")(type "KiCad")(uri "${KIPRJMOD}/nanoleaf.pretty")(options "")(descr "Rev B: Nanoleaf linker contact pads"))
+)
