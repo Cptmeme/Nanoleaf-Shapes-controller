@@ -16,8 +16,8 @@ first *N* rendered pixels into a buffer, and a background FreeRTOS task enumerat
 them every 50 ms and pushes colour frames. Nothing bus-related runs in WLED's loop, so a slow or
 absent panel chain cannot stall effects.
 
-Protocol: <https://github.com/MyrikLD/LeafBus> (`PROTOCOL.md`, MIT). Two details differ from that
-document and were verified on hardware:
+Protocol: <https://github.com/MyrikLD/LeafBus> (`PROTOCOL.md`, MIT). Two details this usermod depends on
+were measured here and have since been merged into that document:
 
 - bulk pull (`C0`) replies arrive in layout-string order, while bulk push (`E0`) chunks are reversed
 - the panel hosting the power supply ORs `0x20` into its status byte

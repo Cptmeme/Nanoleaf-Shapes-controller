@@ -1,8 +1,12 @@
 # Panel bus notes
 
-Observations of the Nanoleaf Shapes panel bus measured with this board. They add to, and in one place
-correct, [LeafBus PROTOCOL.md](https://github.com/MyrikLD/LeafBus/blob/main/PROTOCOL.md), which remains the
-reference for everything not mentioned here. Section numbers (§) refer to that document.
+Observations of the Nanoleaf Shapes panel bus measured with this board, kept as the raw record. They were
+merged into [LeafBus PROTOCOL.md](https://github.com/MyrikLD/LeafBus/blob/main/PROTOCOL.md) in September
+2026 and are credited inline there, so that document is now the reference for all of it.
+
+**§ always means a section of PROTOCOL.md**, never of these notes. Its numbering is unchanged by the
+merge and every reference below still resolves. Where these notes point at themselves they say "section
+N" in words, because both documents now have a section 4, 7 and 8.
 
 **Test setup:**
 - **Hardware:** one assembly of 9 Mini Triangles (NL48) with the stock power supply, driven by the rev A
@@ -11,12 +15,13 @@ reference for everything not mentioned here. Section numbers (§) refer to that 
   - a straight chain, with the board at either end;
   - a fork, with the board on a middle panel;
   - a ring of six panels with three more attached.
-- **Not tested:** Triangles (NL47) and Hexagons (NL42).
+- **Not tested on hardware:** Triangles (NL47) and Hexagons (NL42). The layout parser is now checked
+  against a published hexagon capture, though. See section 8 below.
 
-## 1. The bulk-pull reply comes in layout order (correction to §5.3)
+## 1. The bulk-pull reply comes in layout order (merged into §5.3)
 
-§5.3 says a panel's index is the same in the bulk push (`E0`) and the bulk pull (`C0`). On these panels it
-isn't:
+§5.3 used to say that a panel's index is the same in the bulk push (`E0`) and the bulk pull (`C0`). On
+these panels it is not, and §5.3 now carries the corrected table. What was measured here:
 
 | Frame | Order | Index 0 is… |
 |---|---|---|
@@ -100,3 +105,47 @@ land on the same point (0.00 mm apart).
 | Same chain, controller at the power-supply end | `B1 B1 04 B2 04 B2 B1 B1 04 B2 04 B0 B1 04 04 04 04 04 95 40` |
 | Controller on a middle panel (fork) | `B0 B0 04 B1 B0 B2 95 04 04 04 04 B1 04 B2 04 B0 B1 04 04 40` |
 | Ring of six plus three | `B0 B0 B1 04 04 B0 95 04 04 B1 B1 B0 05 04 04 B2 04 B0 04 40` |
+
+## 8. The parser checked against someone else's hexagons
+
+Everything above comes from 9 Mini Triangles, so the layout parser had never seen a 6-connector panel.
+Christian Panton's [part 1.5](https://christian.panton.org/posts/nanoleaf-ctrl-pt1-5/) publishes a hexagon
+capture with a verified decode, which makes a free test vector:
+
+    e5 00 e1 00 01 00 00 e4 00 01 00 00 01 95 00 e5 00 01 00 95 00 00
+
+He decodes it as **4 hexagons and 2 power supplies**. `parse_node()` in `firmware/main/panelbus.c`, run on
+those bytes unchanged, gives the same:
+
+| Panel | Node | Connectors | Parent-facing edge | Parent | Type |
+|---|---|---|---|---|---|
+| 0 | `E5` | 6 | 5 | root | Hexagon |
+| 1 | `E1` | 6 | 1 | 0 | Hexagon |
+| 2 | `E4` | 6 | 4 | 1 | Hexagon |
+| 3 | `E5` | 6 | 5 | 0 | Hexagon |
+
+All 22 bytes consumed, nothing left over, 2 power supplies found. The four mini-triangle strings in section 7 still
+parse to 9 panels and 1 PSU each, so nothing regressed.
+
+Two things worth recording:
+
+- **The node byte is `0x80 | (connectors << 4) | parent_edge`.** Our `(b >> 4) & 7` and `b & 7` already
+  implement this. The post describes the upper nibble as "the number of edges", which cannot be read
+  literally -- hexagons are `0xE_`, not `0x6_` -- and our mini triangles at `0xB0..0xB2` are the second data
+  point that pins the form down. He had only hexagons and says the other shapes are unconfirmed.
+- **The shape byte is confirmed on the wire.** He reads `01` hexagon / `02` large triangle / `03` Apex
+  hexagon out of the firmware but says he could not confirm it from captures. `panel_type()` already keys on
+  `sep[1] & 7` with `1 = Hexagon, 2 = Triangle, 3 = Elements`, and on his capture that returns Hexagon for
+  all four, which is right. Only the name for `3` is in question -- "Elements" here against his "Apex
+  hexagon", and neither is verified.
+
+**The first step byte differs by panel type and both work.** His hexagons use `00` where our mini triangles
+use `04`. The parser does not interpret that byte except through the shape test, and the 3-connector branch
+keys on `(sep[0] >> 2) & 7 <= 1`, which accepts both. The section 4 theory that the low bits mark a non-child
+neighbour is still unconfirmed, and the one `05` that supported it did not reappear.
+
+**Still unimplemented: stable panel identity.** Panel indices are depth-first positions, so removing a panel
+renumbers every panel found after it -- he measured panel 4's removal shifting panels 5 to 29 down by one.
+He gives the UID query as `0xF8 ... 0x82`. `PB_NODE_CMD` (`0xF8`) is defined in `panelbus.h` and used
+nowhere; the exact framing and reply layout are not in the post, so it needs probing with the `raw` console
+command before anything is written against it.

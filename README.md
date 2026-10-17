@@ -36,7 +36,7 @@ It runs one of four firmwares:
 | [`firmware/`](firmware/) | ESP-IDF firmware |
 | [`wled/`](wled/) | WLED integration: the usermod (recommended) and the original core patch, each with build instructions |
 | [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |
-| [`docs/protocol-notes.md`](docs/protocol-notes.md) | Panel bus behaviour measured on real panels that differs from, or adds to, the LeafBus spec |
+| [`docs/protocol-notes.md`](docs/protocol-notes.md) | Panel bus behaviour measured on real panels, since merged into the LeafBus spec and credited there |
 
 ## Hardware
 
@@ -151,9 +151,16 @@ pairings.
 ## Protocol
 
 The panel bus follows [LeafBus PROTOCOL.md](https://github.com/MyrikLD/LeafBus) (MIT): 1 Mbaud 8N1, single
-wire, half duplex, with the controller initiating every exchange. Real panels differ from that document in a
-few places, most importantly **the touch/status reply (`C0`) comes in layout order, not in reversed chunk
-order**. Everything measured on real panels is in [`docs/protocol-notes.md`](docs/protocol-notes.md).
+wire, half duplex, with the controller initiating every exchange.
+
+The measurements taken on this board were merged into that document in September 2026 and are credited
+inline, so the specification and these panels now agree. The touch and status reply (`C0`) was the notable
+exception and PROTOCOL.md describes it correctly as layout string order. The `0x20` status bit on the
+power supply panel, the `10` marker on the first poll after a release and the panel centre lattice went in
+with it.
+
+The raw measurements stay in [`docs/protocol-notes.md`](docs/protocol-notes.md), together with the
+recorded layout strings and a check of this project's layout parser against a hexagon capture.
 
 ## Next version (rev B)
 
