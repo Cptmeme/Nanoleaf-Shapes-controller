@@ -19,6 +19,22 @@ project name, and renaming it would make KiCad drop every reference.
 > and the fabrication files were verified against the board they came from. None of that proves the
 > circuit works.
 >
+> **The case is further from finished than the board, and it has never met a real PCB.** Every fit check
+> behind it is software against KiCad's 3D models, and those models have already been wrong three times
+> in this project: U2's origin sits 3.9 mm off its own pads, the TS-1187A had no model at all until one
+> was borrowed from another library, and a dozen footprints draw courtyards that leave their leads
+> outside. A clearance that passes in software is a reasonable prior, not a measurement.
+>
+> Specific things to expect trouble from on a first print:
+>
+> * The snap fit interference, 0.15 mm, is a considered guess. Nobody has felt it. `SNAP_H` is the one
+>   number to change.
+> * The button caps clear the switch plungers by 0.10 mm on datasheet geometry and 0.015 mm against the
+>   supplier's 3D model. That is tight enough that print tolerance decides it.
+> * Earlier versions of this case were printed and did reveal real problems, thin pocket walls among
+>   them. Assume this one has its own.
+> * Tolerances are tuned for an FDM printer with the author's settings and will not transfer unchanged.
+>
 > Rev A, which **is** built and working, is in the git history and described in the top level README.
 
 | | |

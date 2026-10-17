@@ -201,6 +201,11 @@ The lid clicks into the tray on four beads, the outside corners and edges are ro
 button caps drop in from the inside and are held by a ridge. The board itself carries a keepout around
 `J1` so components cannot creep into the space the linker pocket needs.
 
+**The case is the least finished part of this and has never been fitted to a real board**, because no
+rev B board exists yet. Every clearance in it was checked in software against KiCad's 3D models, which
+have already turned out to be wrong more than once here. Expect to iterate on it once the boards land.
+See [`hardware/README.md`](hardware/README.md) for what specifically to watch.
+
 ### Fabrication
 
 `hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file as sent. The boards are
