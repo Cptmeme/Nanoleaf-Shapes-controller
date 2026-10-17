@@ -40,11 +40,5 @@ matter-over-thread/dependencies.lock
 # Python caches (rev B generators)
 __pycache__/
 
-# Rev B fabrication: PCBWay are sponsoring this board, so their files are the ones published.
-# The JLCPCB set stays local. It also carries corrections that only make sense against JLCPCB's
-# own library (rotation offsets, a placement offset, a package name), which would mislead anyone
-# sending it elsewhere.
-hardware/fab/jlcpcb/
-
 # Regenerable from the board with mechanical/board_real.py, and 5.4 MB of it
 hardware/mechanical/board_real.stl

@@ -164,10 +164,50 @@ recorded layout strings and a check of this project's layout parser against a he
 
 ## Next version (rev B)
 
-A new version of the PCB is in development. It will:
+> **On order, not yet verified.** No rev B board has been built or powered up. Rev A, described above, is
+> the version that is built and working. Everything in this section is design intent.
 
-- **Fix the rev A issues** listed below.
-- **Clip onto a panel like the original Nanoleaf controller.** No more cable made from a cut flex linker.
+Rev B is a redesign rather than a revision. Instead of hanging off a cut flex linker it clips beside a
+panel on a standard rigid Nanoleaf linker, the same way the stock controller does, and sits in a printed
+case the same 1 cm thick as a panel. It also fixes the [rev A issues](#known-issues-rev-a) below.
+
+![Rev B board](hardware/render/rev-b-iso.png)
+
+### The board
+
+A 106.35 x 21.70 mm trapezoid, two layers, 1.6 mm, 63 components. The rev A circuit carries over and the
+gaps in it are filled.
+
+| | |
+|---|---|
+| Panel connection | `J1`, three bare pads that the linker's spring contacts press on, carrying DATA, GND and 42 V. They sit in a pocket in the case, and the board has slots for the linker's snap hooks, as the panels' own PCBs do |
+| Power | Still the panels' own 42 V, so there is no second supply. `U1` TPS54360 buck down to 3.3 V, now with `D3` SMAJ48A clamping the 42 V rail, which rev A left unprotected |
+| MCU | `U2` keeps the ESP-12F footprint, so an ESP32-C5 or ESP32-C6 module fits. An ESPC5-12 is what is actually fitted, because 5 GHz Wi-Fi and Thread both need the C5 |
+| Panel bus | `U3` and `U4` 74LVC1G125 buffers driven by an RC one-shot, unchanged from rev A, plus a 100 k pull-up on the bus that fixes the C5 strapping problem rev A had |
+| Programming | `J3` USB-C and `U5` CH340C with auto-reset, so flashing needs no buttons and no separate serial adapter. Data only, the board still takes its power from the panels |
+| Buttons | Three on the back for everyday use, pressed through the case. Reset and boot are there too and come off once the board is flashed |
+
+### The case
+
+An FDM printed tray, a lid and three separate button caps, generated from the board rather than drawn
+against it. `mechanical/export_parts.py` reads the real footprints, courtyards and heights out of KiCad,
+and `mechanical/enclosure.py` turns them into geometry, so the case cannot drift from the layout.
+
+**10.00 mm thick**, 11.00 mm across a button cap, which matches a panel. Most of that is not free: the
+linker fixes 6.55 mm of it before any design choice is made, since the plate recess and the plug depth
+put the board surface 4.95 mm below the outer face.
+
+The lid clicks into the tray on four beads, the outside corners and edges are rounded, and the three
+button caps drop in from the inside and are held by a ridge. The board itself carries a keepout around
+`J1` so components cannot creep into the space the linker pocket needs.
+
+### Fabrication
+
+`hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file as sent. The boards are
+sponsored by **[PCBWay](https://www.pcbway.com/)**, who also supply the assembly.
+
+Full design notes, including what was measured and what went wrong on the way, are in
+[`hardware/README.md`](hardware/README.md).
 
 ## Known issues (rev A)
 
