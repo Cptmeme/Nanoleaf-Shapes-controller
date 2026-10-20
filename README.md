@@ -225,6 +225,26 @@ Full design notes, including what was measured and what went wrong on the way, a
 | No bus pull-up | Not needed with Shapes panels (the panel holds DATA high). Fallback: 10 kΩ from `J1` pin 3 to 3.3 V |
 | ESP32-C6 only: GPIO8 (a boot-mode strap that must be high for download mode) is left unconnected | Untested; may need a 10 kΩ pull-up to 3.3 V. Rev B: pull it up on the board |
 
+## Thanks to PCBWay
+
+The rev B boards and their assembly are sponsored by **[PCBWay](https://www.pcbway.com/)**, who got in
+touch about LeafBus and were happy to back the hardware side of it too.
+
+The whole thing went smoothly. What stood out most was the customer service. Replies came back fast,
+sometimes within minutes, and the time difference worked for me rather than against me: a question sent
+during my afternoon was usually answered by the time I got up the next morning. When I asked whether the
+bare contact pads for the panel linker needed ENIG, I got a straight technical answer rather than a sales
+one: ENIG if I wanted stable contact resistance and wear resistance, lead free HASL is fine if the usage
+cycle is low and cost matters more. For a prototype with big spring contacts that was exactly the honest
+answer, and it saved me the upgrade. They were equally helpful when I asked to cut the order back to
+single sided assembly so I could solder the rest myself.
+
+The files they were sent are in [`hardware/fab/pcbway/`](hardware/fab/pcbway/) if you want to order the
+same board.
+
+**The boards have not arrived yet**, so I cannot say anything about the quality of the PCBs, the
+assembly or the finish just yet.
+
 ## Credits
 
 - [LeafBus](https://github.com/MyrikLD/LeafBus) by MyrikLD: the panel protocol specification, the geometry, and the
