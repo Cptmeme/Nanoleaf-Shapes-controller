@@ -10,13 +10,16 @@ N" in words, because both documents now have a section 4, 7 and 8.
 
 **Test setup:**
 - **Hardware:** one assembly of 9 Mini Triangles (NL48) with the stock power supply, driven by the rev A
-  interface board (ESP32-C5, buffered single-wire bus).
+  interface board (ESP32-C5, buffered single-wire bus). Section 9 adds a single Hexagon on the rev B
+  board, which is the same bus interface on a board that clips to a panel edge directly.
 - **Layouts tested:**
   - a straight chain, with the board at either end;
   - a fork, with the board on a middle panel;
   - a ring of six panels with three more attached.
-- **Not tested on hardware:** Triangles (NL47) and Hexagons (NL42). The layout parser is now checked
-  against a published hexagon capture, though. See section 8 below.
+- **Hexagons (NL42):** one panel driven on hardware on 2026-11-10 -- enumeration, colour and touch all
+  confirmed, and section 9 is measured on it. The layout parser had already been checked against a
+  published hexagon capture, see section 8.
+- **Not tested on hardware:** Triangles (NL47).
 
 ## 1. The bulk-pull reply comes in layout order (merged into §5.3)
 
@@ -47,7 +50,7 @@ The first byte of each `C0` pair has more states than §6.3 lists:
 |---|---|
 | `00` | idle |
 | `10` | first poll after enumeration, **and the first poll after a touch is released** |
-| `11`, `12`, `13`, `15`, `16`, `17` | touch (the low nibble varies with the gesture) |
+| `11`..`1F` | touch. The low nibble is a **magnitude**, not a gesture -- see section 9 |
 | `20` | **idle, on the panel the power supply is plugged into** |
 | `32`, `37` → `30` → `20` | touch → release → idle on that same panel |
 
@@ -149,3 +152,44 @@ renumbers every panel found after it -- he measured panel 4's removal shifting p
 He gives the UID query as `0xF8 ... 0x82`. `PB_NODE_CMD` (`0xF8`) is defined in `panelbus.h` and used
 nowhere; the exact framing and reply layout are not in the post, so it needs probing with the `raw` console
 command before anything is written against it.
+
+## 9. The low nibble of a touch is a magnitude, not a gesture
+
+Section 2 listed the touch codes as a set whose low nibble "varies with the gesture". It does not. The low
+nibble is a **magnitude from 0 to 15**, and what moves it is how much of your hand is on the panel.
+
+Measured on 2026-11-10 with one Hexagon on the rev B board, pressing the centre of the front diffuser,
+five attempts per condition, `C0` polled every 50 ms:
+
+| Contact | Touches that reached the wire | Peak magnitude |
+|---|---|---|
+| One fingertip, light | **2 of 5** | 1 |
+| One fingertip, firm | **1 of 5** | 2 |
+| Whole hand, flat | **5 of 5** | 15 |
+
+- **It follows contact area, not force.** Pressing the same fingertip harder moved the peak from 1 to 2.
+  Laying a whole hand on moved it to 15. A capacitive sensor measures the contact patch, and pressing
+  harder barely changes that.
+- **`15` saturates the nibble**, so a palm is clipped and there is no way to tell how much headroom is left
+  above one.
+- **It rises, then decays while the touch is held.** Two profiles, as value@ms from the start of the touch:
+
+      1@0   2@204  3@308  4@308  7@414  15@414  2@927
+      3@0   7@0    15@103  14@409  12@512  8@512
+
+  That is a baseline tracker re-learning a stationary finger. A held touch therefore ends because the
+  reading decayed to zero, not because the finger left, and that is the `10` "released" status of section 2.
+- **A fingertip sits on the detection floor.** 1 or 2 out of 15, in the most sensitive spot on the panel.
+  Seven of ten single-finger attempts produced **no bus traffic at all** -- every `C0` during them answered
+  `00 00`, so the panel never reported them and no controller could have acted on them.
+
+Whether that floor is normal or this particular hexagon is a weak one is **not established**: one panel,
+one session. A second panel would separate the two. Note also that the panel's ground was tied to an
+earthed laptop through the board's USB port throughout, which changes the reference a capacitive sensor
+works against.
+
+**What this rules out on the controller side.** The same session traced 14 touches that did reach the wire,
+and the firmware acted on all 14, including one lasting 100 ms. The once-a-second layout re-read (`00` +
+`80`) takes about 105 ms and a `C0` poll resumes on the very next frame, so it does not blind the bus to
+touch -- an open question since September, now closed. Treating any non-zero low nibble as a touch, as
+`(status & 0x10) && (status & 0x0F)` does, is already the most sensitive reading the protocol allows.
