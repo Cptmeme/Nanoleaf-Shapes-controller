@@ -8,9 +8,9 @@ case's WALL-FACING outer face -- the one the linker plate recesses into -- and g
     2.37  plate recess floor                      PLATE_T
     4.95  board's front surface                   + PLUG_H + TOP_GAP, so the plug's top almost touches it
     6.55  board's back surface                    + BOARD_T
-   10.85  top of the tallest back part            + the buttons, 4.30
-   11.20  lid's inner face                        + BACK_GAP
-   12.80  lid's outer face, room-facing           + LID_T
+    8.05  top of the tallest back part            + 1.50, the switches
+    8.40  lid's inner face                        + BACK_GAP
+   10.00  lid's outer face, room-facing           + LID_T
 
 The first three rows are not design choices: pocket_test.py proved them against a real linker, and the
 case edge has to fall halfway along the linker or it will not reach the panel. Only the last two are free.
@@ -18,8 +18,11 @@ case edge has to fall halfway along the linker or it will not reach the panel. O
 The board's FRONT faces the wall, because that is the side the linker pads are on, so the buttons end up
 on the back, facing the room, which is what makes them pressable.
 
-The three button sections are pads raised proud of the lid, each hung on a thin flexure ring and carrying
-a boss on its inside that closes most of the gap to the switch. One wide pad on the right, where SW6 sits
+10.00 mm is deliberate: it is what the panels themselves measure, so the case reads as one of them.
+
+The three buttons are separate pads that drop into the lid from the inside. Each carries a flange that
+stops under the lid's step, so it cannot come out through the front, and the switch behind it stops it
+falling in once the board is fitted. Nothing on them bends. One wide pad on the right, where SW6 sits
 alone, and two narrower ones on the left over SW3 and SW4.
 
 Needs parts.json -- run export_parts.py under KiCad's Python first -- and manifold3d:
@@ -66,16 +69,21 @@ USB_AXIS = 1.72         # the port's centreline above the board's front surface.
                         # 8.34 x 2.56 -- the USB-C figure exactly -- centred on z 3.23. Guessing 1.60
                         # put the opening 0.12 mm high, which still passed a plug but left 0.20 mm
                         # clearance on one side against 0.44 on the other.
-CORNER_R = 2.00         # plan-view radius on the case's four outer corners
-EDGE_R = 1.00           # fillet on the outer perimeter edge, top face and bottom face
-EDGE_STEPS = 10         # slabs used to approximate that fillet
+CORNER_R_JOINT = 2.50   # plan-view radius on the two 60 degree corners at the joint edge. The board's own
+                        # corners sit right behind them, and every 0.25 mm more costs about 0.23 mm of wall:
+                        # 2.50 leaves 1.08 mm there, 3.00 would leave 0.58
+CORNER_R_FAR = 4.00     # plan-view radius on the two 120 degree corners at the far edge, 1.23 mm of wall left
+EDGE_R = 1.60           # fillet on the outer perimeter edge, top face and bottom face. On the lid it is
+                        # the whole LID_T, so the room face rolls over into the side in one quarter circle
+EDGE_STEP = 0.04        # height of each slab approximating a fillet. Far finer than a 0.12 mm layer, so the
+                        # slicer, sampling every layer at its mid-height, follows the curve and not the slabs
 # Snap fit. The lid's lip drops into the slot between the board edge and the tray's rim, and that slot
 # is where the detent lives: the lip carries four beads that stand proud of its outer face, the tray's
 # rim carries four matching grooves. Everything is outboard of the board edge, so none of it touches the
 # PCB. Interference is SNAP_H - LIP_FIT, and the beads ramp in from nothing over SNAP_RAMP so closing
 # the lid cams them rather than scraping. If the first print is too stiff or too loose, SNAP_H is the
 # number to change and nothing else moves.
-SNAP_H = 0.30           # bead, proud of the lip's outer face: 0.15 mm interference past LIP_FIT
+SNAP_H = 0.40           # bead, proud of the lip's outer face: 0.25 mm interference past LIP_FIT
 SNAP_LEN = 14.00        # along the edge, each bead
 SNAP_RAMP = 0.40        # lead-in: protrusion grows from 0 to SNAP_H over this height
 SNAP_FLAT = 0.45        # full-height part of the bead above the ramp
@@ -89,13 +97,34 @@ BTN_LARGE = (18.0, 13.0)    # the pad over SW6, alone on its side
 BTN_SMALL = (11.0, 9.0)     # the pads over SW3 and SW4
 BTN_R = 2.0                 # pad corner radius
 BTN_PROUD = 1.00            # how far the pad stands above the lid, so it can be found by feel
-BTN_FIT = 0.25              # cap to the lid's opening, per side: it has to slide, not flex
-FLANGE_W = 1.20             # how far the retaining ridge stands proud of the cap, per side
-FLANGE_T = 0.60             # ridge thickness
-CB_DEPTH = 0.80             # counterbore from the lid's inner face, where the ridge lives
-TRAVEL = 0.25               # switch travel, worst case; the ridge must stay engaged through it
-BOSS_GAP = 0.10             # boss to switch, unpressed
-BOSS_MARGIN = 0.40          # boss kept this much inside the plunger, so it cannot sit on the housing
+BTN_TOP_R = 0.60            # fillet on the pad's room-facing edge -- the only part of this a finger meets
+BTN_FIT = 0.20              # cap to the lid's opening, per side: it has to slide, not flex
+BTN_CHAMFER = 0.40          # chamfer round the opening on the lid's outer face, so the gap reads as a line
+TRAVEL = 0.25               # switch travel, worst case
+# The cap drops in from the inside and is held by a flange, not a snap. The flange is wider than the
+# opening above the step, so the cap cannot leave through the front, and the switch behind it stops it
+# going the other way once the board is in. The snap arms this replaced (2026-11-08) printed fused to the
+# cap and could not bend, and the catches that went with them snapped off. Nothing here has to bend.
+# The flange lives in the bore below the step, which is LID_T - STEP_Z = 0.90 mm deep: FLANGE_T of
+# flange plus 0.50 mm of room for the press, against the 0.35 the switch needs.
+STEP_Z = 0.70               # lid left above the step, which the flange bears up against
+FLANGE_OUT = 0.60           # flange, out from the cap's nominal edge: 0.40 of step to bear on, 0.30 clear of the bore
+FLANGE_T = 0.30             # flange, in z. Thinned from 0.40 on 2026-11-10 to buy clearance: the bore is
+                            # LID_T - STEP_Z = 0.90 deep and has to hold the flange plus the whole press,
+                            # so every 0.10 off the flange is 0.10 more BTN_PRELOAD. The flange is in
+                            # compression under the switch spring, not bending, so this is not a load path
+                            # that wanted the thickness.
+WAIST = 0.80                # how far the cap is cut back below the flange, kept so the actuator face
+                            # stays the size the board check has always cleared
+BORE_OUT = 0.90             # bore below the step, out from the cap's nominal edge
+BTN_PRELOAD = 0.30          # cap underside to the switch at rest; its own spring takes up the slack.
+                            # Was 0.10, which held the switches permanently closed on the first build
+                            # (2026-11-10). 0.10 mm is less than the error in the inputs it is made of:
+                            # the switch height is the datasheet's 1.50 against the supplier model's
+                            # 1.59, the board is 1.60 nominal with the fab's own tolerance on top, and
+                            # a hand-soldered switch stands up on its fillets. This is dead travel
+                            # before the switch bites, so it is not free, but it has to clear all three.
+USB_CHAMFER = 0.40          # lead-in round the USB opening, outer face
 
 Z_OUT = 0.0
 Z_RECESS = PLATE_T
@@ -123,40 +152,81 @@ def case_profile(inset=0.0, sharp=False):
 
     Shrinking and growing by the same radius with round joins rounds every convex corner and leaves
     the straight runs where they were, so the case keeps its 113.00 mm joint edge and its 60 degree
-    legs. `sharp` returns the original hard-cornered trapezoid, which the brace band still wants: the
-    band is clipped to the case outline only to stop it running off the end, and rounding there would
-    pointlessly thin it at the corners.
+    legs. The two pairs of corners take different radii, so the outline is rounded twice and the joint
+    half taken from one, the far half from the other. Both leave the legs where they were, so the halves
+    meet in a straight line. `sharp` returns the original hard-cornered trapezoid, which the brace band
+    still wants: the band is clipped to the case outline only to stop it running off the end, and
+    rounding there would pointlessly thin it at the corners.
     """
     p = poly([(CENTRE_X - case_half_width(JOINT_Y), JOINT_Y),
               (CENTRE_X + case_half_width(JOINT_Y), JOINT_Y),
               (CENTRE_X + case_half_width(JOINT_Y + CASE_DEPTH), JOINT_Y + CASE_DEPTH),
               (CENTRE_X - case_half_width(JOINT_Y + CASE_DEPTH), JOINT_Y + CASE_DEPTH)])
-    if not sharp and CORNER_R > 0:
-        p = (p.offset(-CORNER_R, JoinType.Round, circular_segments=48)
-              .offset(CORNER_R, JoinType.Round, circular_segments=48))
+    if not sharp:
+        def round_by(r):
+            return (p.offset(-r, JoinType.Round, circular_segments=48)
+                     .offset(r, JoinType.Round, circular_segments=48)) if r > 0 else p
+        mid = JOINT_Y + CASE_DEPTH / 2
+        big = 4 * CASE_W
+        near = CrossSection.square((big, big)).translate((CENTRE_X - big / 2, mid - big))
+        far = CrossSection.square((big, big)).translate((CENTRE_X - big / 2, mid))
+        p = (round_by(CORNER_R_JOINT) ^ near) + (round_by(CORNER_R_FAR) ^ far)
     return p.offset(-inset, JoinType.Miter, circular_segments=8) if inset else p
 
 
-def fillet_face(solid, section, z_face, r, upward, steps=EDGE_STEPS):
+def fillet_face(solid, section, z_face, r, upward, on_bed=True):
     """Round the outer perimeter edge where `solid` meets the plane z_face.
 
     Manifold has no fillet operator, so the edge is approximated by subtracting a stack of rings: at a
     distance t into the material the profile is inset by r - sqrt(r^2 - (r - t)^2), which is a quarter
-    circle. Ten steps over a 1 mm radius is already smoother than the printer can resolve.
+    circle. Each ring takes the inset at its own mid-height, in slabs of EDGE_STEP.
+
+    `on_bed` is for a face that is printed on the bed, which every rounded face in this case is: the
+    tray's wall face, the lid's room face and the button tops. Right at that face a quarter circle runs
+    flat, so the first layer is pulled in by nearly the whole radius and the second steps out further
+    than one extrusion is wide, prints over air and leaves a slit along the edge. That is what the first
+    print with a 1.60 mm radius showed, on both halves. So below the point where the circle is at 45
+    degrees, t < r (1 - 1/sqrt 2), the profile carries on as a 45 degree bevel tangent to it: the face
+    edge sits 0.59 r in instead of r, and no layer steps out by more than its own height.
 
     `upward` is True when the material lies above z_face (the tray's wall-facing underside) and False
     when it lies below (the lid's room-facing top).
     """
     if r <= 0:
         return solid
+    t45 = r * (1.0 - 1.0 / math.sqrt(2.0))
+
+    def inset(t):
+        if on_bed and t < t45:
+            return 2.0 * t45 - t
+        return r - math.sqrt(max(r * r - (r - t) ** 2, 0.0))
+
+    steps = max(1, math.ceil(r / EDGE_STEP))
     for i in range(steps):
         t0, t1 = r * i / steps, r * (i + 1) / steps
-        d = r - math.sqrt(max(r * r - (r - t0) ** 2, 0.0))      # inset at the shallower end of the band
+        d = inset((t0 + t1) / 2)
         ring = section - section.offset(-d, JoinType.Round, circular_segments=32)
         if ring.area() <= 1e-9:
             continue
         lo, hi = (z_face + t0, z_face + t1) if upward else (z_face - t1, z_face - t0)
         solid -= slab(ring, lo, hi)
+    return solid
+
+
+def chamfer_hole(solid, section, z_face, depth, steps=6):
+    """Open a hole out into a lead-in chamfer over `depth` below z_face.
+
+    Same trick as fillet_face, the other way round: a stack of rings is taken out of the hole's wall,
+    widest at the face and tapering to nothing at depth. On the lid's outer face this turns the gap round
+    a button into a deliberate shadow line instead of a raw edge, and on the USB port it guides the plug.
+    """
+    if depth <= 0:
+        return solid
+    for i in range(steps):
+        t0, t1 = depth * i / steps, depth * (i + 1) / steps
+        d = depth - (t0 + t1) / 2
+        ring = section.offset(d, JoinType.Round, circular_segments=32) - section
+        solid -= slab(ring, z_face - t1, z_face - t0)
     return solid
 
 
@@ -222,8 +292,13 @@ def usb_cut(data):
 
     port = rounded(USB_PORT[0], USB_PORT[1], USB_PORT[1] / 2 - 0.01, cx, Z_PCB - USB_AXIS)
     body = rounded(bx1 - bx0 + 2 * PART_GAP, h + 2 * PART_GAP, 0.60, cx, Z_PCB - h / 2)
-    return (through_wall(port, by1 - 0.30, far + 1.0)        # through the outer wall, and proud of it
-            + through_wall(body, far - CASE_WALL - 1.5, by1 + 0.20))
+    cut = (through_wall(port, by1 - 0.30, far + 1.0)        # through the outer wall, and proud of it
+           + through_wall(body, far - CASE_WALL - 1.5, by1 + 0.20))
+    for i in range(6):                                      # lead-in, widest at the outer face
+        t0, t1 = USB_CHAMFER * i / 6, USB_CHAMFER * (i + 1) / 6
+        d = USB_CHAMFER - (t0 + t1) / 2
+        cut += through_wall(port.offset(d, JoinType.Round, circular_segments=32), far - t1, far - t0)
+    return cut
 
 
 def plate_section():
@@ -470,15 +545,17 @@ def build_lid(data, z_seam, buttons):
     lid += slab(outer - outer.offset(-LID_LIP_W, JoinType.Miter, circular_segments=8),
                 Z_PCB_BACK, z_seam)
 
-    # Two diameters, not one. The cap passes through the outer part; the ridge cannot, and bears on the
-    # step between them. Both are cut from the lid -- there is only 0.35 mm between the switch and the
-    # lid's inner face, nothing like enough to hang a ridge in, so it lives inside the lid's own thickness.
+    # Two parts to each opening. Above the step it is a sliding fit on the cap. Below the step the bore
+    # holds the cap's flange and stays open downwards, which is the way the cap goes in and the room it
+    # travels in. Both share the lid's own 1.60 mm, because there is only 0.35 mm between the switch and
+    # the lid and nothing can be hung in that.
+    z_step = z_seam + LID_T - STEP_Z
     for b in buttons:
         shaft = rounded(b["w"] + 2 * BTN_FIT, b["l"] + 2 * BTN_FIT, BTN_R + BTN_FIT, b["x"], b["y"])
-        bore = rounded(b["w"] + 2 * (FLANGE_W + BTN_FIT), b["l"] + 2 * (FLANGE_W + BTN_FIT),
-                       BTN_R + FLANGE_W + BTN_FIT, b["x"], b["y"])
-        lid -= slab(shaft, z_seam + CB_DEPTH, z_seam + LID_T + 1.0)
-        lid -= slab(bore, z_seam - 1.0, z_seam + CB_DEPTH)
+        bore = rounded(b["w"] + 2 * BORE_OUT, b["l"] + 2 * BORE_OUT, BTN_R + BORE_OUT, b["x"], b["y"])
+        lid -= slab(shaft, z_step, z_seam + LID_T + 1.0)
+        lid -= slab(bore, z_seam - 1.0, z_step)
+        lid = chamfer_hole(lid, shaft, z_seam + LID_T, BTN_CHAMFER)
 
     # The room-facing face: this is the one anybody looking at the thing actually sees.
     for sec, z0, z1 in snap_bands(data, SNAP_H):
@@ -489,23 +566,26 @@ def build_lid(data, z_seam, buttons):
 
 
 def build_buttons(z_seam, buttons):
-    """The caps, printed separately and dropped into the lid from the inside before the board goes in.
+    """The caps, printed separately and dropped into the lid from the inside before the case is closed.
 
-    Each is a cap that stands proud of the lid, a ridge under it that cannot pass back out through the
-    opening, and a boss sized to the switch's own plunger. The switch's spring holds the ridge up against
-    the step; the board stops it falling the other way once assembled.
+    The cap proper fills the opening and stands BTN_PROUD above it. Under the step it grows a flange,
+    FLANGE_OUT wider all round, which is what keeps it from leaving through the front. Below the flange
+    it is cut back to the waist, whose flat underside is the actuator: there is no boss on it. The whole
+    face lands on the switch, which gives the switch a far wider target than its own 2.00 mm plunger.
+
+    Print these with the proud face on the bed. The flange is then the only overhang, 0.60 mm all
+    round, and the actuator face comes out as the last layer.
     """
+    z_step = z_seam + LID_T - STEP_Z
     out = {}
     for b in buttons:
         cap = rounded(b["w"], b["l"], BTN_R, b["x"], b["y"])
-        flange = rounded(b["w"] + 2 * FLANGE_W, b["l"] + 2 * FLANGE_W, BTN_R + FLANGE_W, b["x"], b["y"])
-        bd = b["plunger"] - BOSS_MARGIN         # a boss wider than the plunger lands on the housing
-        boss = rounded(bd, bd, bd / 2 - 0.01, b["x"], b["y"])
-        top = z_seam + CB_DEPTH                 # the ridge sits against the step, pushed there by the switch
-        part = (slab(cap, top, z_seam + LID_T + BTN_PROUD)
-                + slab(flange, top - FLANGE_T, top)
-                + slab(boss, b["top"] + BOSS_GAP, top - FLANGE_T))
-        out[b["ref"]] = part
+        flange = rounded(b["w"] + 2 * FLANGE_OUT, b["l"] + 2 * FLANGE_OUT, BTN_R + FLANGE_OUT, b["x"], b["y"])
+        waist = rounded(b["w"], b["l"] - 2 * WAIST, max(BTN_R - WAIST, 0.20), b["x"], b["y"])
+        part = (slab(cap, z_step, z_seam + LID_T + BTN_PROUD)
+                + slab(flange, z_step - FLANGE_T, z_step)
+                + slab(waist, b["top"] + BTN_PRELOAD, z_step))
+        out[b["ref"]] = fillet_face(part, cap, z_seam + LID_T + BTN_PROUD, BTN_TOP_R, upward=False)
     return out
 
 
@@ -559,24 +639,64 @@ def fit_check(data, tray, lid, caps=None, buttons=None, z_seam=None):
             if (part ^ one).volume() > 1e-3:
                 print(f"         {p['ref']} ({p['value'][:20]}, {p['h']:.2f} mm): {(part ^ one).volume():.2f} mm3")
 
-    # the caps have to be free of the lid, free of the board at rest, and still captive
+    # The caps have to be free at rest, free all the way through a press, and unable to leave through
+    # the front. The last one is tested as geometry rather than arithmetic: pull the cap out at all and
+    # the flange must foul the step. Going in, the switch holds it, which is the board's job, so the
+    # check that matters there is that the flange never leaves the bore and so has nothing to snag on.
     if caps:
+        press = BTN_PRELOAD + TRAVEL
+        room = LID_T - STEP_Z - FLANGE_T
         for b in buttons:
             cap = caps[b["ref"]]
             jam = (cap ^ lid).volume()
             hit = (cap ^ asm).volume()
-            # Captivity is about engagement, not interference: the fit is a sliding one, so the cap never
-            # intersects the lid at all. What matters is how much ridge is still under the step at full
-            # press, and how far the ridge overhangs the opening it must not pass back through.
-            engaged = CB_DEPTH - (BOSS_GAP + TRAVEL)
-            overhang = FLANGE_W - BTN_FIT
-            ok = jam < 1e-3 and hit < 1e-3 and engaged > 0.15
-            print(f"  {b['ref']:4s} cap {'slides free' if jam < 1e-3 else f'JAMS in the lid ({jam:.2f} mm3)'}"
-                  f"{'' if hit < 1e-3 else f', FOULS the board ({hit:.2f} mm3)'}"
-                  f"; ridge overhangs the opening by {overhang:.2f} mm, still {engaged:.2f} mm "
-                  f"into the step at full press")
+            down = (cap.translate((0.0, 0.0, -press)) ^ lid).volume()
+            out_stop = (cap.translate((0.0, 0.0, 0.30)) ^ lid).volume()
+            flange = rounded(b["w"] + 2 * FLANGE_OUT, b["l"] + 2 * FLANGE_OUT, BTN_R + FLANGE_OUT, b["x"], b["y"])
+            shaft = rounded(b["w"] + 2 * BTN_FIT, b["l"] + 2 * BTN_FIT, BTN_R + BTN_FIT, b["x"], b["y"])
+            bearing = (flange - shaft).area()
+            ok = (jam < 1e-3 and hit < 1e-3 and down < 1e-3 and out_stop > 1e-2
+                  and room > press and BORE_OUT > FLANGE_OUT)
+            notes = []
+            if jam >= 1e-3:
+                notes.append(f"JAMS in the lid at rest ({jam:.3f} mm3)")
+            if hit >= 1e-3:
+                notes.append(f"FOULS the board at rest ({hit:.3f} mm3)")
+            if down >= 1e-3:
+                notes.append(f"JAMS {press:.2f} mm into the press ({down:.3f} mm3)")
+            if out_stop <= 1e-2:
+                notes.append("NOT held: the flange misses the step")
+            if room <= press:
+                notes.append(f"flange leaves the bore after {room:.2f} mm, before the switch bottoms at {press:.2f}")
+            print(f"  {b['ref']:4s} " + ("; ".join(notes) if notes else
+                  f"held by its flange: {bearing:.1f} mm2 on the step, {BORE_OUT - FLANGE_OUT:.2f} mm clear "
+                  f"of the bore, {room - press:.2f} mm spare past the switch"))
             bad = bad or not ok
     return not bad
+
+
+def snap_check(tray, lid):
+    """Does the lid actually click into the tray, or does it just sit there?
+
+    Seated has to be zero. The tray's grooves are cut to the beads with SNAP_SLACK all round, so a closed
+    case is a free fit and the detent holds purely by having had to pass the tray's rim to get there.
+    Lift the lid clear of the grooves and the beads come back against that rim, and THAT interference is
+    the click. Nothing else in the build would notice if it were zero, which is how a lid ends up falling
+    out while every number in the file still reads right.
+    """
+    print("\nSNAP, lid into tray")
+    profile = [(d, (tray ^ lid.translate((0.0, 0.0, d))).volume()) for d in (0.0, 0.4, 0.8, 1.4)]
+    for d, v in profile:
+        print(f"  {d:4.2f} mm proud: {v:6.3f} mm3" + ("  seated" if d == 0.0 else ""))
+    seated = profile[0][1]
+    peak = max(v for _, v in profile)
+    print(f"  {SNAP_H - LIP_FIT:.2f} mm interference per bead, four beads {SNAP_LEN:.0f} mm long. "
+          f"Too stiff or too loose, change SNAP_H and nothing else moves")
+    if seated >= 1e-3:
+        print("  !! THE LID WILL NOT CLOSE")
+    if peak <= 1.0:
+        print("  !! NO DETENT: the lid will fall out")
+    return seated < 1e-3 and peak > 1.0
 
 
 def write_stl(manifold, path):
@@ -634,14 +754,18 @@ def main():
     print(f"  front floor is {z_cav:.2f} mm thick over the tall parts, {PLATE_FLOOR:.2f} under the plate recess")
 
     print(f"\nBUTTONS, printed separately and dropped into the lid from the inside")
-    print(f"  cap stands {BTN_PROUD:.2f} mm proud; ridge {FLANGE_W:.2f} mm wide x {FLANGE_T:.2f} thick in a "
-          f"{CB_DEPTH:.2f} mm counterbore, so {LID_T - CB_DEPTH:.2f} mm of lid is left to retain it")
-    print(f"  travel: {BOSS_GAP:.2f} mm of free play, then the switch")
+    print(f"  cap stands {BTN_PROUD:.2f} mm proud, its edge rounded {BTN_TOP_R:.2f}; "
+          f"opening chamfered {BTN_CHAMFER:.2f} on the outer face")
+    print(f"  flange: {FLANGE_OUT:.2f} mm out, {FLANGE_T:.2f} thick, bears on {FLANGE_OUT - BTN_FIT:.2f} mm of step "
+          f"and clears the bore by {BORE_OUT - FLANGE_OUT:.2f}")
+    print(f"  travel: {BTN_PRELOAD:.2f} mm free, {TRAVEL:.2f} mm switch, "
+          f"{LID_T - STEP_Z - FLANGE_T:.2f} mm before the flange leaves the bore")
+    print(f"  no boss: the waist's whole underside lands on the switch, so there is nothing tall and thin "
+          f"to print")
     for b in buttons:
         print(f"  {b['ref']}  cap {b['w']:.0f} x {b['l']:.0f} mm at ({b['x']:.2f}, {b['y']:.2f}), "
               f"opening {b['w'] + 2*BTN_FIT:.1f} x {b['l'] + 2*BTN_FIT:.1f}, "
-              f"ridge {b['w'] + 2*FLANGE_W:.1f} x {b['l'] + 2*FLANGE_W:.1f}; "
-              f"boss {b['plunger'] - BOSS_MARGIN:.2f} on a {b['plunger']:.2f} plunger")
+              f"waist {b['w']:.1f} x {b['l'] - 2*WAIST:.1f} over a {b['plunger']:.2f} mm plunger")
 
     thin = [r for r in reliefs if r["floor"] < MIN_FLOOR]
     if reliefs:
@@ -658,6 +782,7 @@ def main():
     lid = build_lid(data, z_seam, buttons)
     caps = build_buttons(z_seam, buttons)
     fit_check(data, tray, lid, caps, buttons, z_seam)
+    snap_check(tray, lid)
     print()
     for ref, part in caps.items():
         bb = part.bounding_box()
