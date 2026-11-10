@@ -6621,7 +6621,7 @@
 			)
 		)
 	)
-	(global_label "BTN_PWR"
+	(global_label "BTN_RIGHT"
 		(shape input)
 		(at 43.18 85.09 90)
 		(fields_autoplaced yes)
@@ -6789,7 +6789,7 @@
 			)
 		)
 	)
-	(global_label "BTN_PWR"
+	(global_label "BTN_RIGHT"
 		(shape input)
 		(at 50.8 193.04 180)
 		(fields_autoplaced yes)
@@ -7557,7 +7557,7 @@
 			)
 		)
 	)
-	(global_label "BTN_DN"
+	(global_label "BTN_PWR"
 		(shape input)
 		(at 45.72 163.83 180)
 		(fields_autoplaced yes)
@@ -8205,7 +8205,7 @@
 			)
 		)
 	)
-	(global_label "BTN_UP"
+	(global_label "BTN_LEFT"
 		(shape input)
 		(at 45.72 90.17 180)
 		(fields_autoplaced yes)
@@ -8373,7 +8373,7 @@
 			)
 		)
 	)
-	(global_label "BTN_UP"
+	(global_label "BTN_LEFT"
 		(shape input)
 		(at 96.52 193.04 180)
 		(fields_autoplaced yes)
@@ -8493,7 +8493,7 @@
 			)
 		)
 	)
-	(global_label "BTN_DN"
+	(global_label "BTN_PWR"
 		(shape input)
 		(at 63.5 123.19 270)
 		(fields_autoplaced yes)
