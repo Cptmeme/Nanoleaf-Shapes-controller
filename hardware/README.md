@@ -1,49 +1,72 @@
-# Rev B
+# Rev C
 
-Rev B clips onto a panel like the stock controller, instead of connecting through a cut flex linker, and
-fixes the rev A issues. It replaced rev A in this folder on 2026-10-11. Rev A is still in the git history
-if you want it, at the commit before that change.
+Rev C is rev B with the faults that rev B's own bring-up turned up. The board still clips beside a panel
+on a standard rigid Nanoleaf linker, the way the stock controller does, and nothing about the shape of
+the circuit has changed. It replaced rev B in this folder on 2026-11-10. Rev B is still in the git
+history at the commit before that change, and rev A one step further back.
 
 The KiCad files keep the name `nanoleaf_shapes`: the schematic stores its component references under that
 project name, and renaming it would make KiCad drop every reference.
 
-![Rev B board](render/rev-b-iso.png)
+![Rev C board](render/rev-c-iso.png)
 
-> ## Not verified
+> ## Status
 >
-> **No rev B board has been built or powered up.** Boards are on order. Everything below is design intent
-> and bench checking, not a working result.
+> **Rev B is built and working. Rev C has never been fabricated.**
 >
-> What has actually been checked: DRC passes with 0 errors and 0 unconnected items, ground is one
-> connected body, the enclosure clears the board in a 3D fit check against the KiCad component models,
-> and the fabrication files were verified against the board they came from. None of that proves the
-> circuit works.
+> Rev B boards came back from PCBWay, one was assembled with an ESPC5-12, and the buck, the panel bus,
+> enumeration, colour, touch, Matter over Thread, the three case buttons and the printed enclosure have
+> all been exercised on real panels. Everything in this document that describes the circuit, the board
+> and the case is backed by hardware.
 >
-> **The case is further from finished than the board, and it has never met a real PCB.** Every fit check
-> behind it is software against KiCad's 3D models, and those models have already been wrong three times
-> in this project: U2's origin sits 3.9 mm off its own pads, the TS-1187A had no model at all until one
-> was borrowed from another library, and a dozen footprints draw courtyards that leave their leads
-> outside. A clearance that passes in software is a reasonable prior, not a measurement.
+> Rev C changes only what the next section lists. Those edits are checked but not built. ERC and DRC both
+> pass with 0 errors and 0 unconnected items, and the fabrication files in `fab/` were regenerated from
+> this board.
 >
-> Specific things to expect trouble from on a first print:
->
-> * The snap fit interference, 0.25 mm, is a considered guess. Nobody has felt it. `SNAP_H` is the one
->   number to change.
-> * The button caps drop in from the inside and are held by a flange under the lid's step, then by the
->   board. Nothing on them bends, but they are loose while the case is open. The snap arms before them
->   failed on the first real print, see *Buttons held by a flange* below.
-> * The caps press the switches with their whole flat underside instead of a boss. That was confirmed on
->   a print, but it means the face arrives about level with the switch housing at full plunger travel, so
->   the housing rather than the plunger may end up being the stop.
-> * Earlier versions of this case were printed and did reveal real problems, thin pocket walls among
->   them. Assume this one has its own.
-> * Tolerances are tuned for an FDM printer with the author's settings and will not transfer unchanged.
->
-> Rev A, which **is** built and working, is in the git history and described in the top level README.
+> The case has been printed and fitted repeatedly. The button caps took three rounds to stop them holding
+> the switches closed, and the snap fit was settled by feel on real prints. Those numbers are measured
+> rather than guessed now, but they are tuned for one FDM printer and will not transfer unchanged.
 
 | | |
 |---|---|
-| ![top](render/rev-b-top.png) | ![bottom](render/rev-b-bottom.png) |
+| ![top](render/rev-c-top.png) | ![bottom](render/rev-c-bottom.png) |
+
+## What rev B testing changed
+
+Rev B works. Building one and living with it still turned up a handful of things worth correcting before
+another batch is made, and all of them are in rev C.
+
+**Auto-reset was wired backwards.** The CH340C's DTR and RTS reached the wrong transistors, so esptool's
+standard reset sequence drove EN and BOOT the wrong way round and the board would not enter download mode
+on its own. Flashing a rev B board needs `firmware/tools/revb_reset.py`, which drives the two lines by
+hand. Rev C swaps U5 pins 13 and 14, which puts Q1's emitter on DTR with its base on RTS and Q2's the
+other way round, the usual DevKitC arrangement, so stock esptool works. `SW1` and `SW2` keep their
+footprints even though they are not fitted, so the manual buttons can still be soldered on if auto-reset
+misbehaves again.
+
+**A via sat in the middle of the DATA linker pad.** Vias on this board are tented, but a pad carries its
+own solder mask opening, so the hole stayed open exactly where the linker's spring contact lands. The
+spring would have ridden over a plated crater, and an open hole there is somewhere for flux and debris to
+sit. The via moved to just past the end of the pad, and the track now runs up into the pad on the front
+copper instead.
+
+**EN was not actually connected in the schematic.** The EN global label reached only one pin, so the
+schematic disagreed with the board, which was routed correctly. ERC had been reporting it as an isolated
+pin label the whole time.
+
+**The schematic was missing part numbers.** Fourteen symbols carried no JLCPCB code, which left the BOM
+depending on the board alone and the two files disagreeing. Every part in the BOM now carries one.
+
+**U2 named the wrong module.** The schematic still said WT0132C6-S5 while the board had been moved to the
+ESPC5-12 that is actually fitted. Updating the PCB from the schematic would have pushed the wrong part
+number back onto the board.
+
+**The button nets were named after a guess.** They are now named for where the buttons sit on the case,
+left and right, with only the power button keeping a function name, so the names stay true if the
+firmware reassigns what the buttons do.
+
+**R13's rotation disagreed with its own pad angles**, which made the board and its library copy differ
+for no reason. Cosmetic, and fixed while the rest was open.
 
 ## Decisions
 

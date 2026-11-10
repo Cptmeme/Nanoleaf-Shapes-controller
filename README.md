@@ -25,14 +25,16 @@ It runs one of four firmwares:
 > **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
 > fork and ring layouts, with WLED (the core-patch build), with the ESP-IDF firmware, and as a Matter light in
 > a Thread network.
-> Hexagons and large Triangles are handled by the code but have not been tested on real panels yet. A
-> **Rev B is on order and has not been verified on hardware.** Rev A, described below, is the version that is built and working. See [Next version](#next-version-rev-b).
+> Hexagons and large Triangles are handled by the code but have not been tested on real panels yet.
+> **Rev B is built and working too**, with USB-C flashing, three buttons on the case and a printed
+> enclosure. The project files in this repository are now **rev C**, which is rev B with the faults its
+> bring-up exposed. No rev C board has been fabricated. See [Current board](#current-board-rev-c).
 
 ## Repository
 
 | Path | Contents |
 |---|---|
-| [`hardware/`](hardware/) | Rev B KiCad project (schematic and PCB), fabrication files in `fab/`, and the enclosure sources in `mechanical/`. **Not yet verified on hardware** |
+| [`hardware/`](hardware/) | Rev C KiCad project (schematic and PCB), fabrication files in `fab/`, and the enclosure sources in `mechanical/`. Rev B is built and working, rev C is rev B with its bring-up fixes and has not been fabricated |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
 | [`wled/`](wled/) | WLED integration: the usermod (recommended) and the original core patch, each with build instructions |
 | [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |
@@ -162,16 +164,18 @@ with it.
 The raw measurements stay in [`docs/protocol-notes.md`](docs/protocol-notes.md), together with the
 recorded layout strings and a check of this project's layout parser against a hexagon capture.
 
-## Next version (rev B)
+## Current board (rev C)
 
-> **On order, not yet verified.** No rev B board has been built or powered up. Rev A, described above, is
-> the version that is built and working. Everything in this section is design intent.
+> **Rev B is built and working. Rev C has not been fabricated.** Rev C is rev B with the faults that
+> building and using a rev B board exposed, listed under *What rev B testing changed* in
+> [`hardware/README.md`](hardware/README.md). The circuit is otherwise unchanged, so the description
+> below covers both.
 
-Rev B is a redesign rather than a revision. Instead of hanging off a cut flex linker it clips beside a
+Rev B was a redesign rather than a revision. Instead of hanging off a cut flex linker it clips beside a
 panel on a standard rigid Nanoleaf linker, the same way the stock controller does, and sits in a printed
 case the same 1 cm thick as a panel. It also fixes the [rev A issues](#known-issues-rev-a) below.
 
-![Rev B board](hardware/render/rev-b-iso.png)
+![Rev C board](hardware/render/rev-c-iso.png)
 
 ### The board
 
@@ -201,15 +205,19 @@ The lid clicks into the tray on four beads, the outside corners and edges are ro
 button caps drop in from the inside and are held by a ridge. The board itself carries a keepout around
 `J1` so components cannot creep into the space the linker pocket needs.
 
-**The case is the least finished part of this and has never been fitted to a real board**, because no
-rev B board exists yet. Every clearance in it was checked in software against KiCad's 3D models, which
-have already turned out to be wrong more than once here. Expect to iterate on it once the boards land.
-See [`hardware/README.md`](hardware/README.md) for what specifically to watch.
+**The case has been printed and fitted to a real board**, which took several rounds. The button caps
+held the switches closed until the third print, and the snap fit was settled by feel rather than by the
+software clearance checks, which had already turned out to be wrong more than once here. The numbers in
+`mechanical/` are the ones that worked on one FDM printer with the author's settings, so expect to tune
+them for yours. See [`hardware/README.md`](hardware/README.md) for what specifically to watch.
 
 ### Fabrication
 
-`hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file as sent. The boards are
-sponsored by **[PCBWay](https://www.pcbway.com/)**, who also supply the assembly.
+`hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file, generated from the
+current board by `mechanical/make_fab_files.py`, which writes a JLCPCB set alongside it. These are the
+rev C files. The rev B set, which is what was actually sent and built, is in the git history at the
+commit before rev C replaced it. The rev B boards are sponsored by
+**[PCBWay](https://www.pcbway.com/)**, who also supply the assembly.
 
 Full design notes, including what was measured and what went wrong on the way, are in
 [`hardware/README.md`](hardware/README.md).
@@ -239,11 +247,13 @@ cycle is low and cost matters more. For a prototype with big spring contacts tha
 answer, and it saved me the upgrade. They were equally helpful when I asked to cut the order back to
 single sided assembly so I could solder the rest myself.
 
-The files they were sent are in [`hardware/fab/pcbway/`](hardware/fab/pcbway/) if you want to order the
-same board.
+The files they were sent are the rev B set, which is in the git history at the commit before rev C
+replaced it. [`hardware/fab/pcbway/`](hardware/fab/pcbway/) holds the current rev C files if you want to
+order a board.
 
-**The boards have not arrived yet**, so I cannot say anything about the quality of the PCBs, the
-assembly or the finish just yet.
+**The boards arrived and they work.** One was assembled with an ESPC5-12 and has been driving panels
+ever since, through the panel bus, colour, touch and Matter over Thread. The single-sided assembly came
+back correctly populated, and the bare linker contact pads came out clean.
 
 ## Credits
 
