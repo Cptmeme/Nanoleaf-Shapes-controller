@@ -27,6 +27,40 @@ menu "Nanoleaf Shapes panel bus"
         help
             Kept as a high-impedance input so the hardware one-shot controls the transmit buffer.
 
+    # The switches are on the BACK of the board and the case shows that face to the room, so the view is
+    # mirrored: the highest board x is the LEFTMOST button. Left to right as somebody at the wall sees it,
+    # that is SW6 (x 113.90, the large cap), SW4 (x 67.18) and SW3 (x 49.85). Only the power button has a
+    # function name in the schematic; the other two are named for where they are, so they stay true if
+    # these assignments change.
+    #
+    # Each switch shorts its pin to GND against nothing but a debounce cap, so the internal pull-ups are
+    # enabled and all three are active low.
+
+    config NANOLEAF_BTN_POWER_GPIO
+        int "Power button GPIO, -1 if not fitted"
+        range -1 48
+        default 10 if IDF_TARGET_ESP32C5
+        default -1
+        help
+            The leftmost button, the large cap: SW6, module footprint pad 20, net BTN_PWR. Toggles the light.
+
+    config NANOLEAF_BTN_PREV_GPIO
+        int "Colour back button GPIO, -1 if not fitted"
+        range -1 48
+        default 1 if IDF_TARGET_ESP32C5
+        default -1
+        help
+            The middle button: SW4, module footprint pad 2, net BTN_LEFT. Steps back through the colour cycle.
+
+    config NANOLEAF_BTN_NEXT_GPIO
+        int "Colour forward button GPIO, -1 if not fitted"
+        range -1 48
+        default 0 if IDF_TARGET_ESP32C5
+        default -1
+        help
+            The rightmost button: SW3, module footprint pad 1, net BTN_RIGHT. Steps forward through the
+            colour cycle.
+
     config NANOLEAF_TRANSITION
         int "Panel fade time per colour change"
         range 0 255

@@ -58,6 +58,32 @@ static bool         s_state_loaded;       // the stored attributes are in; until
 /* The endpoint wants a non-null private-data pointer; the panel bus is a singleton. */
 static uint8_t s_light_token;
 
+/* What the two small buttons step through: a ring of fixed colours with the moving rainbow as the last
+   stop, so holding one direction walks the colours, reaches the rainbow and comes back to the first
+   colour. Hue and saturation are in Matter's 0..254 units, which is what the attributes take, so these
+   are written straight through rather than converted. White is saturation 0, where hue stops mattering. */
+static const struct {
+    const char *name;
+    uint8_t hue;
+    uint8_t saturation;
+} k_cycle[] = {
+    { "red",     0,   254 },
+    { "orange",  21,  254 },
+    { "yellow",  42,  254 },
+    { "green",   85,  254 },
+    { "cyan",    127, 254 },
+    { "blue",    170, 254 },
+    { "purple",  191, 254 },
+    { "magenta", 212, 254 },
+    { "white",   0,   0   },
+};
+#define CYCLE_COLOURS (int)(sizeof k_cycle / sizeof k_cycle[0])
+#define CYCLE_STEPS   (CYCLE_COLOURS + 1)   /* + the rainbow */
+
+/* Which stop the cycle is on, or -1 when the colour came from somewhere else (a controller, or the
+   stored value at boot). From -1, forward starts at the first colour and back starts at the rainbow. */
+static int s_cycle_step = -1;
+
 /* Colour of every panel as RGBW. The white share of the colour (the smallest of R, G and B) moves
    to the white LEDs: the panels' RGB-only white is visibly blue, their white LEDs are neutral. */
 static void current_rgbw(uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *w)
@@ -342,4 +368,86 @@ app_driver_handle_t app_driver_button_init()
     }
     iot_button_register_cb(handle, BUTTON_SINGLE_CLICK, NULL, button_toggle_cb, NULL);
     return (app_driver_handle_t)handle;
+}
+
+/* Move the cycle by one stop and show it. Like the BOOT button, this writes the data model rather than
+   the panels, so a controller watching the light sees the colour somebody picked at the wall. Selecting
+   a colour switches the rainbow off; the rainbow stop switches it on and leaves the colour alone, so
+   stepping off the rainbow puts the previous colour straight back. */
+static void cycle_step(int delta)
+{
+    if (light_endpoint_id == 0) {
+        return;
+    }
+    int step = s_cycle_step < 0 ? (delta > 0 ? 0 : CYCLE_STEPS - 1)
+                                : ((s_cycle_step + delta) % CYCLE_STEPS + CYCLE_STEPS) % CYCLE_STEPS;
+    s_cycle_step = step;
+
+    bool want_rainbow = step == CYCLE_COLOURS;
+    if (rainbow_endpoint_id != 0) {
+        esp_matter_attr_val_t on = esp_matter_bool(want_rainbow);
+        attribute::update(rainbow_endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id, &on);
+    }
+    if (want_rainbow) {
+        ESP_LOGI(TAG, "cycle %d/%d: rainbow", step + 1, CYCLE_STEPS);
+        return;
+    }
+
+    /* Saturation first: at white (saturation 0) the hue is arbitrary, and writing it first would show a
+       moment of the old saturation at the new hue. Each write renders, so the order is visible. */
+    esp_matter_attr_val_t sat = esp_matter_uint8(k_cycle[step].saturation);
+    attribute::update(light_endpoint_id, ColorControl::Id, ColorControl::Attributes::CurrentSaturation::Id, &sat);
+    esp_matter_attr_val_t hue = esp_matter_uint8(k_cycle[step].hue);
+    attribute::update(light_endpoint_id, ColorControl::Id, ColorControl::Attributes::CurrentHue::Id, &hue);
+
+    /* set_hue and set_saturation already put the driver in HS mode. This is for the controller's sake:
+       ColorMode is what tells it to show the hue wheel rather than a colour temperature slider. */
+    esp_matter_attr_val_t mode = esp_matter_enum8((uint8_t)ColorControl::ColorMode::kCurrentHueAndCurrentSaturation);
+    attribute::update(light_endpoint_id, ColorControl::Id, ColorControl::Attributes::ColorMode::Id, &mode);
+    attribute::update(light_endpoint_id, ColorControl::Id, ColorControl::Attributes::EnhancedColorMode::Id, &mode);
+
+    ESP_LOGI(TAG, "cycle %d/%d: %s (hue %u, sat %u)", step + 1, CYCLE_STEPS,
+             k_cycle[step].name, k_cycle[step].hue, k_cycle[step].saturation);
+}
+
+static void cycle_next_cb(void *arg, void *data) { cycle_step(+1); }
+static void cycle_prev_cb(void *arg, void *data) { cycle_step(-1); }
+
+/* A plain GPIO button: the switch shorts the pin to GND and the board carries only a debounce cap on
+   each line, so the internal pull-up does the rest. */
+static button_handle_t user_button(int gpio, const char *what)
+{
+    if (gpio < 0) {
+        return NULL;
+    }
+    button_handle_t handle = NULL;
+    const button_config_t btn_cfg = {0};
+    const button_gpio_config_t gpio_cfg = {
+        .gpio_num = gpio,
+        .active_level = 0,
+        .enable_power_save = false,
+        .disable_pull = false,
+    };
+    if (iot_button_new_gpio_device(&btn_cfg, &gpio_cfg, &handle) != ESP_OK) {
+        ESP_LOGE(TAG, "failed to create the %s button on GPIO%d", what, gpio);
+        return NULL;
+    }
+    ESP_LOGI(TAG, "%s button on GPIO%d", what, gpio);
+    return handle;
+}
+
+void app_driver_user_buttons_init()
+{
+    button_handle_t power = user_button(CONFIG_NANOLEAF_BTN_POWER_GPIO, "power");
+    if (power) {
+        iot_button_register_cb(power, BUTTON_SINGLE_CLICK, NULL, button_toggle_cb, NULL);
+    }
+    button_handle_t next = user_button(CONFIG_NANOLEAF_BTN_NEXT_GPIO, "colour forward");
+    if (next) {
+        iot_button_register_cb(next, BUTTON_SINGLE_CLICK, NULL, cycle_next_cb, NULL);
+    }
+    button_handle_t prev = user_button(CONFIG_NANOLEAF_BTN_PREV_GPIO, "colour back");
+    if (prev) {
+        iot_button_register_cb(prev, BUTTON_SINGLE_CLICK, NULL, cycle_prev_cb, NULL);
+    }
 }

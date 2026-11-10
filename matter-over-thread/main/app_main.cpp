@@ -271,6 +271,7 @@ extern "C" void app_main()
     app_ota_verify_start();
 
     app_driver_light_set_defaults(light_endpoint_id);
+    app_driver_user_buttons_init(); // after the endpoints exist: the callbacks write the data model
 
 #if CONFIG_ENABLE_CHIP_SHELL
     esp_matter::console::diagnostics_register_commands();

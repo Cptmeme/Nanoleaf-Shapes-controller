@@ -26,6 +26,11 @@ app_driver_handle_t app_driver_light_init();
 /** Register the BOOT button: a tap toggles the light. Returns the button handle for app_reset. */
 app_driver_handle_t app_driver_button_init();
 
+/** Register the three buttons on the case: power, and the two that step the colour cycle. Each is
+    skipped if its GPIO is configured as -1. Call it after the endpoints exist, because the callbacks
+    write the data model. */
+void app_driver_user_buttons_init();
+
 /** Apply one attribute change to the panels. Called from the Matter attribute callback. */
 esp_err_t app_driver_attribute_update(app_driver_handle_t driver_handle, uint16_t endpoint_id, uint32_t cluster_id,
                                       uint32_t attribute_id, esp_matter_attr_val_t *val);
