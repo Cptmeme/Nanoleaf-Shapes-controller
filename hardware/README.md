@@ -27,10 +27,14 @@ project name, and renaming it would make KiCad drop every reference.
 >
 > Specific things to expect trouble from on a first print:
 >
-> * The snap fit interference, 0.15 mm, is a considered guess. Nobody has felt it. `SNAP_H` is the one
+> * The snap fit interference, 0.25 mm, is a considered guess. Nobody has felt it. `SNAP_H` is the one
 >   number to change.
-> * The button caps clear the switch plungers by 0.10 mm on datasheet geometry and 0.015 mm against the
->   supplier's 3D model. That is tight enough that print tolerance decides it.
+> * The button caps drop in from the inside and are held by a flange under the lid's step, then by the
+>   board. Nothing on them bends, but they are loose while the case is open. The snap arms before them
+>   failed on the first real print, see *Buttons held by a flange* below.
+> * The caps press the switches with their whole flat underside instead of a boss. That was confirmed on
+>   a print, but it means the face arrives about level with the switch housing at full plunger travel, so
+>   the housing rather than the plunger may end up being the stop.
 > * Earlier versions of this case were printed and did reveal real problems, thin pocket walls among
 >   them. Assume this one has its own.
 > * Tolerances are tuned for an FDM printer with the author's settings and will not transfer unchanged.
@@ -241,18 +245,32 @@ signals are still reachable at U5's pins.
 ### User buttons
 
 Five switches on the **back**, the room-facing side, so they can actually be pressed: **three user buttons**
--- power, brightness up, effect -- plus reset and boot, moved across from the front, which had no room left
-for them and where they would have faced the wall anyway.
+-- power and the two that step the colour cycle -- plus reset and boot, moved across from the front, which
+had no room left for them and where they would have faced the wall anyway. They were laid out for power,
+brightness up and effect, which is where the original net names came from.
 
 They sit on the **board midline, y 56.825**, and are centred on the two areas the linker cut-out leaves. The
 cut-out spans x 79.61..94.06, and at the midline the board runs x 39.93..133.74, so the areas either side of
 it are **39.676 mm wide each** -- symmetric by construction:
 
-| | x | Where |
-|---|---|---|
-| SW3 `BTN_PWR` | 49.85 | left area, quarter point |
-| SW4 `BTN_UP` | 69.69 | left area, three-quarter point |
-| SW6 `BTN_FX` | 113.90 | right area, **midpoint** |
+Board x runs the opposite way from what somebody at the wall sees: the switches are on the back and the
+case shows that face to the room, so the **highest x is the leftmost button**.
+
+| | x | Where on the board | Seen from the room |
+|---|---|---|---|
+| SW6 `BTN_PWR` | 113.90 | right area, **midpoint** | leftmost, the large cap |
+| SW4 `BTN_LEFT` | 69.69 | left area, three-quarter point | middle |
+| SW3 `BTN_RIGHT` | 49.85 | left area, quarter point | rightmost |
+
+**Renamed on 2026-11-10.** They were `BTN_PWR`, `BTN_UP` and `BTN_FX`/`BTN_DN`, from an earlier plan of
+power, brightness up and effect -- and by then `BTN_PWR` sat on the button furthest from the power
+function. Reading those names off the schematic is what put power on the wrong switch in the Matter
+firmware first time round.
+
+Only the power button carries a function name now, because it will always be the power button. The other
+two are named for **where they are**, left and right of each other as somebody at the wall sees them, so
+the schematic cannot go stale again when the firmware reassigns what they do. At the moment they step the
+colour cycle, `BTN_LEFT` back and `BTN_RIGHT` forward.
 
 The left pair splits its area into four equal parts. SW6 is at its area's midpoint rather than a quarter
 point because the brightness-down button that shared that side was removed -- it sat over the module's
@@ -294,7 +312,7 @@ pin can match them -- four `net_conflict` parity warnings, and their GND net had
 hand rather than coming from the netlist, where an Update PCB from Schematic could quietly drop it again.
 And a plated hole inside an SMD part's courtyard is exactly what `pth_inside_courtyard` looks for: two more
 errors, against SW4 on the other side. The same library also gave them `*.Cu *.Paste *.Mask`, so they had
-mask openings and paste apertures on *both* faces, leaving bare GND copper 0.271 mm from SW4's BTN_UP pad.
+mask openings and paste apertures on *both* faces, leaving bare GND copper 0.271 mm from SW4's BTN_LEFT pad.
 
 They are now **ordinary GND vias on the board**, placed by hand, and gone from both the board footprint and
 the library copy (`revb_drop_thermal_pads.py`). Nothing is lost: same four holes, same 0.61 / 0.30 mm, same
@@ -905,25 +923,56 @@ The corners cost some width. A 2 mm radius at a 60 degree corner pulls the verte
 so maximum width goes **113.00 -> 110.07 mm**. That is still well inside the panel's 114 mm edge, and
 `CORNER_R` is one constant if it looks too soft or too sharp.
 
+**Rounder, 2026-11-08,** after holding a print: the edges felt too straight. `EDGE_R` is now **1.60 mm**,
+which on the lid is its whole thickness, so the room face rolls into the side in one quarter circle and
+meets the tray flush at the seam. The tray's wall-facing edge takes the same radius. The corners split
+into two constants, because the board's own corners sit right behind the two at the joint edge:
+
+| | radius | wall left at the board's corner |
+|---|---|---|
+| `CORNER_R_JOINT`, the two 60 degree corners at the joint edge | 2.00 -> **2.50 mm** | 1.53 -> **1.08 mm** |
+| `CORNER_R_FAR`, the two 120 degree corners at the far edge | 2.00 -> **4.00 mm** | 1.54 -> **1.23 mm** |
+
+3.00 mm at the joint corners would leave 0.58 mm, and from 5 mm the board's corner comes out through the
+side. A 60 degree corner also reads much rounder than a 120 degree one at the same radius, its tangent points
+sit 1.73 r back from the vertex against 0.58 r, so 2.50 there and 4.00 at the far end look alike. Maximum
+width is now 109.3 mm. The fit check, the button flanges and the lid snap all came out unchanged.
+
+**A slit along every rounded edge** showed on that print, on both halves, between the first and second
+layer. Every rounded face in this case prints on the bed, and `fillet_face()` built the curve from ten
+slabs, each inset by its value at the face end. For the first slab that is the full radius, so the first
+layer was pulled in 1.57 mm against 1.04 on the true circle, and the second stepped **0.70 mm** further
+out, wider than one 0.42 mm extrusion. It printed over air and sagged. With the old 1.00 mm radius the
+same step was 0.44 mm, just inside a line width, which is why nobody saw it.
+
+Now each slab is 0.04 mm (`EDGE_STEP`) and takes the inset at its own mid-height, so every layer lands on
+the curve. Below the point where the circle reaches 45 degrees, `t < r (1 - 1/sqrt 2)`, it carries on as a
+45 degree bevel tangent to it, the usual way to print a round edge that sits on the bed. The face edge then
+sits 0.94 mm in rather than 1.60, and measured on the built STLs no layer steps out more than **0.16 mm**,
+on either half. `fillet_face(..., on_bed=False)` gives the plain quarter circle for a face that does not
+print on the bed.
+
 The brace band deliberately keeps the hard outline, `case_profile(sharp=True)`. It is clipped to the
 case only to stop it running off the end, and rounding there would thin it at the corners for nothing.
 
 **A snap fit.** The lid used to just sit on. It now carries four beads on the outer face of its lip,
 with four matching grooves in the tray's rim. The slot between the board edge and the rim is where this
-lives, so **nothing touches the PCB** -- the beads run from board + 0.15 mm out to board + 0.45 mm,
+lives, so **nothing touches the PCB** -- the beads run from board + 0.15 mm out to board + 0.55 mm,
 entirely outboard of the board.
 
-Interference is `SNAP_H` - `LIP_FIT` = 0.30 - 0.15 = **0.15 mm**, over four 14 mm beads, and each bead
-ramps in from nothing over `SNAP_RAMP` 0.40 mm so the lid cams shut instead of scraping.
+Interference is `SNAP_H` - `LIP_FIT` = 0.40 - 0.15 = **0.25 mm**, over four 14 mm beads, and each bead
+ramps in from nothing over `SNAP_RAMP` 0.40 mm so the lid cams shut instead of scraping. It started at
+0.15 mm and was **raised on 2026-10-26**: 0.15 mm is inside an FDM printer's own tolerance, which is a
+good way to design a detent that is not there.
 
 Measured on the built STLs:
 
 | Lid position | Interference with the tray |
 |---|---|
 | seated | **0.000 mm³** -- the parts assemble |
-| 0.4 mm proud | 1.680 mm³ |
-| 0.8 mm proud | **4.410 mm³** -- the bead crossing the rim |
-| 1.4 mm proud | 0.000 mm³ -- clear again |
+| 0.4 mm proud | 2.800 mm³ |
+| 0.8 mm proud | **7.420 mm³** -- the bead crossing the rim |
+| 1.4 mm proud | 0.280 mm³ -- clear again |
 
 That is the signature of a detent: free when closed, free when off, and a hump in between that has to be
 cammed past. **`SNAP_H` is the only number to change** if the first print is too stiff or too loose;
@@ -955,6 +1004,84 @@ The brace band grows with it, 150.55 to 157.95 mm², still with 0.000 mm² of fr
 
 It also squares the geometry against what J1's keepout already published, which was always a rectangle.
 
+### Buttons that click in, and no boss
+
+2026-10-26, and all of it from a print rather than from software.
+
+**They fell out.** A cap was held only by a ridge resting on a step, pushed there by the switch's own
+spring, so with the lid off the board nothing was under them at all and handling shook them loose.
+
+**The snap had to flex sideways.** The obvious answer, a leg hanging off the cap that hooks under the
+lid, does not fit. A cantilever's usable deflection goes as length squared over thickness, and the entire
+budget from the switch to the room is 1.95 mm, so a leg long enough to bend 0.40 mm in that space would
+have to be a few hundredths of a millimetre thick. There is no room in z. There is plenty in plan, so
+each cap now carries **two arms that run along its own long edges** and bend in the plane of the lid,
+where 4.60 mm of free length is free for the asking.
+
+| | |
+|---|---|
+| step | `STEP_Z` 0.70 mm of lid above it |
+| opening | cap **+0.20 mm per side**, above the step |
+| bore | cap **+0.90 mm per side** below it, holding the arms, open downwards so the cap can travel |
+| arm | 5.50 mm long, 0.50 mm wide, 4.60 mm of it free |
+| barb | **0.60 mm** out from the cap's edge, so it bends **0.40 mm** to get in and then catches **0.40 mm** of step |
+| catch | **0.40 mm** of lid hanging below the inner face, bonded flat over **1.60 mm**, reaching 1.50 mm back in under each barb |
+| travel | 0.10 mm free, 0.25 mm switch, **0.50 mm** before the catch becomes the stop |
+| bearing on the step | **1.81 mm²** measured, across both barbs |
+
+The catch is the half that is easy to miss. The step stops the cap coming back out, but on its own it
+leaves the cap free to drop into the case, which is the failure being fixed. So a ledge hangs under the
+lid's inner face and reaches back in under each barb. It sits 1.45 mm above the board and passes 1.30 mm
+clear of the switch it straddles.
+
+**The first version of that ledge was held on by a hairline.** It was dimensioned outward from the barb,
+`BARB_OUT` + 0.50 mm, which put its outer edge just 0.20 mm past the bore wall. Two printed layers would
+have started on a 0.20 mm strip and then bridged 1.50 mm, which is a tab that falls off in the slicer.
+Nothing in the build objected. The lid was still one watertight solid, every clearance still passed, and
+the fit check still reported all three caps clicking home. It was caught by looking at the model.
+
+It is now dimensioned from the bore instead, `CATCH_ROOT` = 1.60 mm of flat bond outboard of it, so each
+catch is glued to the lid over **9.76 mm², 1.60 mm of its 3.10 mm width**, and cantilevers only the
+1.50 mm it has to. Bonded at least as wide as it overhangs is the rule worth keeping.
+
+**The boss is gone.** Each cap had a small pad underneath, sized from the switch's own plunger, which on
+a 2.00 mm plunger came out as a 1.60 mm square standing 0.45 mm proud of an otherwise flat face. Printed
+underside-down that pad is the first thing on the bed, so a 13.4 x 11.4 mm plate had to grow out of a
+1.6 x 1.6 mm footprint. The flat face presses the switch perfectly well without it, so the cap is cut
+back to a waist below the step and that **waist's whole underside is the actuator**, 11.0 x 7.4 mm over a
+2.00 mm plunger.
+
+What that gives up is the reason the boss existed: it was kept deliberately inside the plunger so it
+could never land on the switch housing. A flat face can. The face starts 0.10 mm above the plunger, and
+on the 3D model's split of that switch -- 1.29 mm body, 0.30 mm plunger -- the housing is about 0.3 mm
+below the plunger top against 0.25 mm of travel, so the face arrives at the housing just about as the
+plunger bottoms. That is tolerable on a tact switch, and it is the clearance to watch rather than the
+catch at 0.50 mm.
+
+**Print the caps with the proud face on the bed.** The arms then grow straight off the cap's full
+section, nothing overhangs but the barbs' own 0.60 mm, and the actuator face comes out as the last layer.
+
+**Rounded and chamfered.** `BTN_TOP_R` 0.60 mm rounds the cap's room-facing edge, which is the only part
+of any of this a finger meets. `BTN_CHAMFER` 0.40 mm opens the lid's opening out at the outer face, so
+the gap round each cap reads as a shadow line rather than a raw edge, and `USB_CHAMFER` does the same at
+the USB port where it doubles as a lead-in: the opening measures 9.74 mm at the face and 9.00 mm at
+0.40 mm in, against a plug shell of 8.34 x 2.56.
+
+The seam between lid and tray is **left crisp on purpose**. The two halves share one outer profile and
+butt flush, so rounding either side of it would open a 2 mm groove round the case instead of tidying
+anything.
+
+**The build now checks these rather than describing them.** `fit_check` used to do arithmetic on the
+engagement depth. It moves the cap and looks instead: free at rest, free all the way through a press,
+fouling the catch when pushed 0.30 mm past its travel, fouling the step when lifted 0.30 mm. `snap_check`
+does the same for the lid, which nothing checked before, and prints the whole detent profile rather than
+one number. `catch_check` measures how much of each catch is bonded, as the plan intersection of its
+footprint with the lid material above the inner face, and complains below 1.00 mm.
+
+Any of those tests coming back clear means the feature is not there, whatever the constants say. The
+hairline catch is the case in point: a watertight solid is not evidence that a feature is attached to
+anything.
+
 ### Bounding-box corners are not parts
 
 `assembled_board` drew each part as an axis-aligned box from its envelope. U2's pads run along two edges of
@@ -962,6 +1089,38 @@ the module, so the corner of their bounding box lands in empty space -- and 0.31
 edge, while the nearest real U2 pad is 1.013 mm inside it. The cavity is clipped to the board outline, so it
 could not give way there, and the phantom corner read as a 0.0026 mm³ clash. The board mock is now clipped
 to the board outline too, which is the same limit the cavity already respects.
+
+### Buttons held by a flange
+
+2026-11-08, after the snap caps failed on their first real print.
+
+**The arms were glued to the cap in the model itself.** Each arm ran from 0.25 mm inside the cap's edge to
+0.25 mm outside it, with its top face at the step, which is exactly where the cap's full section starts. So
+every arm shared a 0.25 mm wide face with the cap along its whole length, printed as part of it and could
+not bend. The catches then took the whole push, snapped off easily, and their stubs blocked the arms.
+`fit_check` did not see it, because it tested where the cap could move, not whether an arm could.
+
+The caps are now held the way most enclosures hold a button over a tact switch: by a flange, with the board
+behind it.
+
+| | |
+|---|---|
+| opening above the step | cap **+0.20 mm per side**, a sliding fit, unchanged |
+| bore below the step | cap **+0.90 mm per side**, 0.90 mm deep, open towards the board, unchanged |
+| flange | cap **+0.60 mm per side**, **0.40 mm** thick, right under the step. It bears on 0.40 mm of step, **15.6 mm²** on a small cap and **24.4 mm²** on the large one, and clears the bore by 0.30 mm |
+| travel | 0.10 mm free and 0.25 mm switch, against **0.50 mm** before the flange would leave the bore |
+| catches | gone, along with `catch_check` |
+
+The flange stops the cap leaving through the front. The switch stops it going the other way, so **with the
+case open the caps are loose**, the same trade the ridge version made. Fit them last: lid face down on the
+table, drop each cap into its opening from the inside, then close the case over them. The lid's snap, which
+does work on a real print, holds the board, and the board holds the caps.
+
+Print the caps with the proud face on the bed. The flange is the only overhang, 0.60 mm all round. The lid
+has nothing hanging below its inner face any more, so it prints with no overhangs at all.
+
+`fit_check` tests the flange the way it tested the snap: free at rest, free through a full press, and
+fouling the step when lifted 0.30 mm. The tray is unchanged, byte for byte.
 
 ## Open items
 
