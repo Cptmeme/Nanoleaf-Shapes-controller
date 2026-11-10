@@ -9,6 +9,7 @@
 */
 
 #include <esp_log.h>
+#include <esp_timer.h>
 #include <string.h>
 
 #include <esp_matter.h>
@@ -410,18 +411,130 @@ static void cycle_step(int delta)
              k_cycle[step].name, k_cycle[step].hue, k_cycle[step].saturation);
 }
 
-static void cycle_next_cb(void *arg, void *data) { cycle_step(+1); }
-static void cycle_prev_cb(void *arg, void *data) { cycle_step(-1); }
+/* Brightness from the wall. Matter's level is 0..254, so one 10% step is 25.4 and the arithmetic is done
+   in percent to keep the steps landing on round numbers wherever the app left the level. */
+#define LEVEL_MAX      MATTER_BRIGHTNESS      /* 254 */
+#define LEVEL_MIN_PCT  10                     /* a press never leaves the panels below this */
+#define LEVEL_STEP_PCT 10                     /* one tap */
+#define RAMP_MS        150                    /* how often a held button rewrites the level */
+#define RAMP_STEP      10                     /* and by how much: 254/10 * 150 ms is about 3.8 s end to end */
+#define RESET_HOLD_MS  10000                  /* power held this long erases the Matter pairing */
+
+static bool s_ramped;        /* a hold ramped, so swallow the click the button may raise on release */
+
+static uint8_t level_get()
+{
+    return get_u8(light_endpoint_id, LevelControl::Id, LevelControl::Attributes::CurrentLevel::Id);
+}
+
+/* Matter's range is 1..254, so no whole level is exactly 10%: the mark for one tenth is 25.4, stored as
+   25, which is 9.84%. Truncating that reads back as 9% and makes the log contradict itself one line
+   later. Round instead -- this is for display only, the marks themselves are compared as levels. */
+static int level_pct(uint8_t level)
+{
+    return (level * 100 + LEVEL_MAX / 2) / LEVEL_MAX;
+}
+
+/* CurrentLevel is a NULLABLE uint8, not a plain one -- create_current_level() takes nullable<uint8_t>.
+   Writing it with esp_matter_uint8 is rejected with ESP_ERR_INVALID_ARG (258) and the attribute keeps
+   its old value, which reads back as though nothing happened. The panels still moved, because the
+   driver renders from the value handed to the PRE_UPDATE callback before the store refuses it, so the
+   only visible symptom was a brightness that always stepped from the same place. */
+static void level_set(int level)
+{
+    if (level < 1) level = 1;
+    if (level > LEVEL_MAX) level = LEVEL_MAX;
+    esp_matter_attr_val_t val = esp_matter_nullable_uint8((uint8_t)level);
+    esp_err_t err = attribute::update(light_endpoint_id, LevelControl::Id,
+                                      LevelControl::Attributes::CurrentLevel::Id, &val);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "level %d rejected: %s", level, esp_err_to_name(err));
+    }
+}
+
+/* Below about 10% the panels read as off, which makes every button look broken: the colour changes, the
+   cycle moves, and nothing on the wall shows it. So a press at the wall always leaves the level visible.
+   The app keeps the full range -- this is only on the physical buttons, where there is no slider to see
+   what went wrong with. Returns the level now in force. */
+static uint8_t level_floor()
+{
+    uint8_t cur = level_get();
+    int floor_level = LEVEL_MIN_PCT * LEVEL_MAX / 100;
+    if (cur >= floor_level) {
+        return cur;
+    }
+    ESP_LOGI(TAG, "level %u was below %d%%, lifting to %d", cur, LEVEL_MIN_PCT, floor_level);
+    level_set(floor_level);
+    return (uint8_t)floor_level;
+}
+
+static void colour_cb(void *arg, void *data)
+{
+    level_floor();
+    cycle_step(+1);
+}
+
+/* A tap goes to the next 10% mark above where we are, so a level the app left at 37% goes to 40 rather
+   than 47, and 100% wraps to the bottom. The marks are searched rather than calculated: going through a
+   percentage truncates. 40% stores as 101, 101 * 100 / 254 is 39, which rounds back down to 30 and steps
+   to 40 again -- the first version of this sat at 40% forever. Comparing against the marks themselves
+   cannot do that, because the level written is always exactly one of them. */
+static void bright_click_cb(void *arg, void *data)
+{
+    if (s_ramped) {           /* this click is the tail of a hold, not a separate press */
+        s_ramped = false;
+        return;
+    }
+    uint8_t cur = level_floor();
+    int tenth = 0;
+    for (int t = 1; t <= 10; t++) {
+        if (t * LEVEL_MAX / 10 > cur) {
+            tenth = t;
+            break;
+        }
+    }
+    if (tenth == 0) {         /* at or above the top mark: wrap round to the floor */
+        tenth = LEVEL_MIN_PCT / 10;
+    }
+    ESP_LOGI(TAG, "brightness tap: %u (%d%%) -> %d (%d%%)", cur, level_pct(cur),
+             tenth * LEVEL_MAX / 10, level_pct(tenth * LEVEL_MAX / 10));
+    level_set(tenth * LEVEL_MAX / 10);
+}
+
+/* Held: ramp up and stop at the top, keeping whatever it reached when released. The event repeats every
+   20 ms, which is far too often to rewrite an attribute -- each write renders the panels and reports to
+   every subscribed controller -- so it is rate limited to RAMP_MS. */
+static void bright_hold_cb(void *arg, void *data)
+{
+    static int64_t next_write;
+    int64_t now = esp_timer_get_time();
+    if (!s_ramped) {
+        s_ramped = true;
+        next_write = 0;       /* first hold event acts at once */
+    }
+    if (now < next_write) {
+        return;
+    }
+    next_write = now + RAMP_MS * 1000LL;
+    uint8_t cur = level_floor();
+    if (cur >= LEVEL_MAX) {
+        return;               /* at the top: stay there, do not wrap */
+    }
+    ESP_LOGI(TAG, "brightness ramp: %d%% -> %d%%", level_pct(cur), level_pct(cur + RAMP_STEP));
+    level_set(cur + RAMP_STEP);
+}
 
 /* A plain GPIO button: the switch shorts the pin to GND and the board carries only a debounce cap on
    each line, so the internal pull-up does the rest. */
-static button_handle_t user_button(int gpio, const char *what)
+static button_handle_t user_button(int gpio, const char *what, uint16_t long_press_ms = 0)
 {
     if (gpio < 0) {
         return NULL;
     }
     button_handle_t handle = NULL;
-    const button_config_t btn_cfg = {0};
+    /* 0 means the component's own default, which is a full second before a hold registers. The
+       brightness button passes something shorter, because a second of nothing feels broken. */
+    const button_config_t btn_cfg = { .long_press_time = long_press_ms, .short_press_time = 0 };
     const button_gpio_config_t gpio_cfg = {
         .gpio_num = gpio,
         .active_level = 0,
@@ -436,18 +549,71 @@ static button_handle_t user_button(int gpio, const char *what)
     return handle;
 }
 
+/* Two red flashes to confirm the pairing has gone. The device reboots immediately afterwards, so without
+   this there is nothing at all to see and no way to tell a reset from a crash.
+
+   Driven straight at the panels rather than through the data model: those attributes are about to be
+   erased, so writing them would only persist state that is being thrown away, and a controller would be
+   told about a colour the device is not going to keep. The rainbow is stopped first, or rainbow_task
+   overwrites the flashes every 40 ms. Brightness goes to full because the whole point is to be visible
+   whatever the level happened to be. */
+static void blink_red(int times)
+{
+    if (xSemaphoreTake(s_lock, pdMS_TO_TICKS(200)) == pdTRUE) {
+        s_rainbow = false;
+        xSemaphoreGive(s_lock);
+    }
+    pb_brightness(255);
+    for (int i = 0; i < times; i++) {
+        pb_fill(255, 0, 0, 0, 0);
+        vTaskDelay(pdMS_TO_TICKS(250));
+        pb_fill(0, 0, 0, 0, 0);
+        vTaskDelay(pdMS_TO_TICKS(250));
+    }
+}
+
+/* Held for RESET_HOLD_MS, the power button erases the Matter pairing. SW1 and SW2 are not fitted on this
+   board, so the usual hold-BOOT route does not exist and this is the only way to re-commission without a
+   serial cable. The button component fires BUTTON_LONG_PRESS_START once, at the press_time registered
+   with it, so this cannot repeat while the button stays down. */
+static void power_reset_cb(void *arg, void *data)
+{
+    ESP_LOGW(TAG, "power held %d s: erasing the Matter pairing", RESET_HOLD_MS / 1000);
+    blink_red(2);
+    esp_matter::factory_reset();   /* wipes the fabrics and reboots */
+}
+
+/* The power button lifts the level too, so switching the light on at the wall can never produce a panel
+   that is on but too dim to see. Switching it off leaves the level alone. */
+static void power_cb(void *arg, void *data)
+{
+    attribute_t *attribute = attribute::get(light_endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id);
+    esp_matter_attr_val_t val = esp_matter_invalid(NULL);
+    attribute::get_val(attribute, &val);
+    if (!val.val.b) {
+        level_floor();
+    }
+    val.val.b = !val.val.b;
+    attribute::update(light_endpoint_id, OnOff::Id, OnOff::Attributes::OnOff::Id, &val);
+}
+
 void app_driver_user_buttons_init()
 {
     button_handle_t power = user_button(CONFIG_NANOLEAF_BTN_POWER_GPIO, "power");
     if (power) {
-        iot_button_register_cb(power, BUTTON_SINGLE_CLICK, NULL, button_toggle_cb, NULL);
+        iot_button_register_cb(power, BUTTON_SINGLE_CLICK, NULL, power_cb, NULL);
+        button_event_args_t reset_args = {};
+        reset_args.long_press.press_time = RESET_HOLD_MS;
+        iot_button_register_cb(power, BUTTON_LONG_PRESS_START, &reset_args, power_reset_cb, NULL);
+        ESP_LOGI(TAG, "hold power %d s to erase the Matter pairing", RESET_HOLD_MS / 1000);
     }
-    button_handle_t next = user_button(CONFIG_NANOLEAF_BTN_NEXT_GPIO, "colour forward");
-    if (next) {
-        iot_button_register_cb(next, BUTTON_SINGLE_CLICK, NULL, cycle_next_cb, NULL);
+    button_handle_t colour = user_button(CONFIG_NANOLEAF_BTN_COLOUR_GPIO, "colour cycle");
+    if (colour) {
+        iot_button_register_cb(colour, BUTTON_SINGLE_CLICK, NULL, colour_cb, NULL);
     }
-    button_handle_t prev = user_button(CONFIG_NANOLEAF_BTN_PREV_GPIO, "colour back");
-    if (prev) {
-        iot_button_register_cb(prev, BUTTON_SINGLE_CLICK, NULL, cycle_prev_cb, NULL);
+    button_handle_t bright = user_button(CONFIG_NANOLEAF_BTN_BRIGHT_GPIO, "brightness", 400);
+    if (bright) {
+        iot_button_register_cb(bright, BUTTON_SINGLE_CLICK, NULL, bright_click_cb, NULL);
+        iot_button_register_cb(bright, BUTTON_LONG_PRESS_HOLD, NULL, bright_hold_cb, NULL);
     }
 }

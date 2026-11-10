@@ -44,22 +44,24 @@ menu "Nanoleaf Shapes panel bus"
         help
             The leftmost button, the large cap: SW6, module footprint pad 20, net BTN_PWR. Toggles the light.
 
-    config NANOLEAF_BTN_PREV_GPIO
-        int "Colour back button GPIO, -1 if not fitted"
+    config NANOLEAF_BTN_COLOUR_GPIO
+        int "Colour cycle button GPIO, -1 if not fitted"
         range -1 48
         default 1 if IDF_TARGET_ESP32C5
         default -1
         help
-            The middle button: SW4, module footprint pad 2, net BTN_LEFT. Steps back through the colour cycle.
+            The middle button: SW4, module footprint pad 2, net BTN_LEFT. Steps forward through the
+            colour cycle, wrapping past the rainbow back to the first colour.
 
-    config NANOLEAF_BTN_NEXT_GPIO
-        int "Colour forward button GPIO, -1 if not fitted"
+    config NANOLEAF_BTN_BRIGHT_GPIO
+        int "Brightness button GPIO, -1 if not fitted"
         range -1 48
         default 0 if IDF_TARGET_ESP32C5
         default -1
         help
-            The rightmost button: SW3, module footprint pad 1, net BTN_RIGHT. Steps forward through the
-            colour cycle.
+            The rightmost button: SW3, module footprint pad 1, net BTN_RIGHT. A tap steps the brightness
+            up 10%, wrapping from 100% back to 10%. Holding it ramps smoothly up to 100% and stops
+            there, keeping whatever level it had reached when released.
 
     config NANOLEAF_TRANSITION
         int "Panel fade time per colour change"
