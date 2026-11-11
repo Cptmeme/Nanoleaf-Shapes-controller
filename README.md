@@ -211,6 +211,13 @@ software clearance checks, which had already turned out to be wrong more than on
 `mechanical/` are the ones that worked on one FDM printer with the author's settings, so expect to tune
 them for yours. See [`hardware/README.md`](hardware/README.md) for what specifically to watch.
 
+<p align="center">
+  <img src="docs/media/case-installed.jpg" width="300" alt="A vertical run of Nanoleaf Shapes Mini Triangles lit in a rainbow, with the controller in its printed case at the bottom of the run">
+  <img src="docs/media/case-closeup.jpg" width="300" alt="Close-up of the controller in its printed white case, clipped to the edge of a lit panel, showing its three button caps">
+</p>
+<p align="center"><em>The board in its printed case, clipped to a panel edge and driving the run. The three caps are
+the power, colour and brightness buttons.</em></p>
+
 ### Fabrication
 
 `hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file, generated from the
