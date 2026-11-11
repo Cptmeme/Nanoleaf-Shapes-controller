@@ -144,10 +144,12 @@ their own block on the right of the sheet (now A3). Like the rest of the schemat
 In the existing circuit: `EN` and `BOOT` labels on U2's pins (SW2 moved to the right to make room, same
 connection), and pads 11 and 18 lost their no-connect flags.
 
-**Checked with kicad-cli 10.0.3:** ERC gives 0 errors. The 33 warnings are all "Unspecified and Passive pins
-connected", because the easyeda2kicad symbols give their pins no electrical type; the board before it had 30 of
-them. A netlist comparison against that board shows every new net with exactly the intended pins, and every
-connection it already had still intact.
+**Checked with kicad-cli 10.0.3:** ERC gives **0 errors and 41 warnings**, every one of them "Unspecified and
+Passive pins connected", because the easyeda2kicad symbols give their pins no electrical type. `U2` alone
+accounts for 15, `U1` 9, `U4` 7 and `U3` 6, across 32 symbols in total: a symbol library artefact, not a
+circuit problem. The board before this one reported the same 41, plus an `isolated_pin_label` and a stray
+no-connect flag that sat in empty space on the sheet. Both are now gone. A netlist comparison against that
+board shows every new net with exactly the intended pins, and every connection it already had still intact.
 
 **Part numbers:** the `LCSC` fields carried copy-paste errors: J1 and U4 had C1525 (the 100 nF capacitor),
 J2 C52923, SW1 C5449052 and SW2 C4211. They didn't matter, because the BOM listed U3/U4 correctly and left the
@@ -468,12 +470,12 @@ with the exact test found exactly one violation, the Q2 one, and it is gone. The
 
 ### State
 
-DRC: **0 errors, 0 unconnected items, 0 schematic-parity issues.** 15 violations, all warnings, all
+DRC: **0 errors, 0 unconnected items, 0 schematic-parity issues.** 14 violations, all warnings, all
 cosmetic:
 
 | | |
 |---|---|
-| 10 silkscreen | 7 `silk_overlap`, 2 `silk_edge_clearance`, 1 `silk_over_copper`. PCBWay clips silk off pads anyway. |
+| 9 silkscreen | 7 `silk_overlap`, 2 `silk_edge_clearance`. PCBWay clips silk off pads anyway. |
 | 3x `text_height` | J1's DATA/GND/42V labels at 0.6 mm against a 0.8 mm rule. Deliberate -- they have to fit on the tongue. |
 | 2x `lib_footprint_mismatch` | J3 and U5, both **1 nm rounding noise**: a few line endpoints stored as `4.699999` where the library has `4.7`. Pads, layers, shapes and polygons are identical. |
 
