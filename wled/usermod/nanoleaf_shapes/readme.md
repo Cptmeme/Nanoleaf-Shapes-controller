@@ -7,7 +7,7 @@ Needs no changes to WLED itself — this replaces the earlier `TYPE_LEAFBUS` [co
 
 **Status:** builds against WLED `main` at commit `961961fd` (17.0.0-dev) for the ESP32-C5 and ESP32-C6
 (checked 2026-09-30), but hasn't been run on hardware yet. The core patch uses the same bus driver and is the
-version tested on the rev A board.
+version that has been run on hardware.
 
 ## How it works
 

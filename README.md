@@ -4,9 +4,9 @@ An open-source replacement controller for **Nanoleaf Shapes** panels. A small in
 single panel edge and takes **42 V, GND and DATA** from it: no stock controller and no separate power supply.
 
 <p align="center">
-  <a href="docs/media/demo.mp4"><img src="docs/media/demo.gif" width="320" alt="Nine Nanoleaf Shapes Mini Triangles changing colour, driven by the rev A controller board in the foreground"></a>
+  <a href="docs/media/demo.mp4"><img src="docs/media/demo.gif" width="320" alt="Nine Nanoleaf Shapes Mini Triangles changing colour, driven by an early controller board in the foreground"></a>
 </p>
-<p align="center"><em>The rev A board (foreground) driving nine Mini Triangles through a cut flex linker. Click for the video.</em></p>
+<p align="center"><em>An early board (foreground) driving nine Mini Triangles through a cut flex linker. Click for the video.</em></p>
 
 It runs one of four firmwares:
 
@@ -22,11 +22,11 @@ It runs one of four firmwares:
   this project builds on. The panels become a DDP and E1.31/sACN pixel sink with a layout page. It needs three
   settings on this board, and hasn't been tested on it yet; see [Running LeafBus](#running-leafbus).
 
-> **Status:** rev A boards are built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
+> **Status:** the hardware is built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
 > fork and ring layouts, with WLED (the core-patch build), with the ESP-IDF firmware, and as a Matter light in
 > a Thread network.
 > Hexagons and large Triangles are handled by the code but have not been tested on real panels yet.
-> **Rev B is built and working too**, with USB-C flashing, three buttons on the case and a printed
+> **Rev B is built and working**, with USB-C flashing, three buttons on the case and a printed
 > enclosure. The project files in this repository are now **rev C**, which is rev B with the faults its
 > bring-up exposed. No rev C board has been fabricated. See [Current board](#current-board-rev-c).
 
@@ -34,7 +34,7 @@ It runs one of four firmwares:
 
 | Path | Contents |
 |---|---|
-| [`hardware/`](hardware/) | Rev C KiCad project (schematic and PCB), fabrication files in `fab/`, and the enclosure sources in `mechanical/`. Rev B is built and working, rev C is rev B with its bring-up fixes and has not been fabricated |
+| [`hardware/`](hardware/) | Rev C KiCad project (schematic and PCB), fabrication files in `fab/`, and the printable case STLs in `mechanical/`. Rev B is built and working, rev C is rev B with its bring-up fixes and has not been fabricated |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
 | [`wled/`](wled/) | WLED integration: the usermod (recommended) and the original core patch, each with build instructions |
 | [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |
@@ -54,7 +54,7 @@ It runs one of four firmwares:
 
 **Module:** any 16 × 24 mm module with the ESP-12F footprint. The footprint is drawn for the Wireless-Tag
 WT0132C6-S5 (ESP32-C6); the working boards use a DOIT ESPC5-12 (ESP32-C5). The module sits on the back, and
-is hand-soldered along with `SW1`, `SW2`, `J1` and `J2`.
+is hand-soldered along with `SW1` and `SW2`.
 
 ### Module pins
 
@@ -64,7 +64,7 @@ is hand-soldered along with `SW1`, `SW2`, `J1` and `J2`.
 | Bus RX | 19 | GPIO10 | GPIO27 |
 | One-shot (RC) node | 16 | GPIO7 | GPIO6 |
 | BOOT button `SW2` | 18 | GPIO9 | GPIO28 |
-| UART0 RX / TX (`J2`) | 21 / 22 | GPIO17 / GPIO16 | GPIO12 / GPIO11 |
+| UART0 RX / TX | 21 / 22 | GPIO17 / GPIO16 | GPIO12 / GPIO11 |
 
 For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by exercising the on-board
 `U4` → `U3` loopback.
@@ -74,31 +74,24 @@ For other modules, the ESP-IDF firmware finds the bus pins itself (`pinscan`) by
 | Connector | Pin 1 | Pin 2 | Pin 3 |
 |---|---|---|---|
 | `J1`, to a panel | 42 V | GND | DATA |
-| `J2`, serial | RX0 | TX0 | 3V3 |
 
-- **`J2` has no GND pin on rev A.** For a USB-serial adapter, take GND from `J1` pin 2 or from the negative
-  pad of `C11`. Cross the UART: adapter TX → `J2` pin 1, adapter RX → `J2` pin 2.
-- `J2` has no DTR/RTS either, so there's no automatic reset into the bootloader. See [Flashing](#flashing).
-- On rev A, the board connects through a cable made from a cut Nanoleaf flex linker (rev B will clip on
-  directly). Inside the outer sheath are three wires:
-  - **thick red:** 42 V → `J1` pin 1
-  - **bare wire, with no insulation of its own:** GND → `J1` pin 2
-  - **thin blue:** DATA (`COM` on the silkscreen) → `J1` pin 3
-
-  Check this before connecting anything, because colours may differ between batches. The wire with continuity
-  to the centre pad is GND; with the panels powered, the wire reading about 42 V is the supply. Insulate the
-  stripped ends, including the bare GND wire, before powering up: 42 V on DATA destroys a panel.
+`J1` is three bare pads, not a header: the board clips beside a panel on a standard rigid Nanoleaf linker
+and the linker's spring contacts press on them. There is nothing to wire up, and nothing to get the wrong
+way round.
 
 ### Power and safety
 
-- **There is no reverse-polarity, fuse or TVS protection.** Reversing `J1` destroys `U1`.
-- **Powered from a panel through `J1`:** the normal mode. Wi-Fi, Bluetooth and Thread all work reliably.
-- **Powered from a USB-serial adapter's 3.3 V on `J2` pin 3:** good enough for flashing and for the
-  radio-off console. Most adapters can't supply the current the radio draws while it starts up, though,
-  so WLED and the Matter firmware reset-loop on adapter power. **Never feed adapter 3.3 V while `J1` is
-  powered.**
-- **Never connect TX/RX without also connecting GND.** The panel supply and a computer don't share a ground
-  otherwise.
+- **Powered from the panels through `J1`:** the normal mode, and on a rev B board the only one. Wi-Fi,
+  Bluetooth and Thread all work reliably on it.
+- **Powered from USB:** rev C adds `D5`, a second SS210 from USB VBUS to the buck input, so the board runs
+  from a USB host with no panel attached. With a panel connected, that node sits at 42 V and the diode is
+  reverse biased, so nothing can reach the host. Without one, the buck runs from about 4.75 V, which leaves
+  only ~0.25 V over the TPS54360's minimum: fine for bench flashing at 100-300 mA, not guaranteed on a long
+  thin cable. On rev B, USB is data only and flashing needs a panel attached for power.
+- **`D3`, an SMAJ48A, clamps the 42 V rail.** The board gets clipped onto live panels routinely, and
+  hot-plugging into ceramic input capacitors can ring well above 42 V.
+- **There is no fuse and no reverse-polarity protection**, left out on purpose: the linker mates one way
+  only and `J1` is three bare pads, so there is nothing to connect backwards.
 
 ## Firmware
 
@@ -129,22 +122,24 @@ resistor. To run it on this board, change three things (this hasn't been tested 
    open drain, because its tri-state buffer releases the line after every byte. LeafBus's open-drain switch
    also writes a register that only exists on the original ESP32.
 
-Then copy the files as in LeafBus's quick start. On rev A, mind the serial caveats under
-[Connectors](#connectors) and [Power and safety](#power-and-safety).
+Then copy the files as in LeafBus's quick start.
 
 ## Flashing
 
-**The first flash always goes over serial.** Connect an adapter to `J2` (see [Connectors](#connectors)),
-then put the chip into download mode:
+**Flashing goes over USB-C.** `U5`, a CH340C, carries UART0 with auto-reset, so there is no separate
+adapter to wire up and no buttons to hold.
 
-- **Hold BOOT (`SW2`, next to `J2`), tap EN (`SW1`, next to `J1`), then release BOOT.** With the ESP-IDF
-  firmware installed, you can type `download` on its console instead.
-- **On the ESP32-C5 the bus pins double as boot-mode straps.** UART download mode also needs GPIO27 (bus RX)
-  to be high at reset. With a panel attached the bus idles high and BOOT + EN works reliably; without a
-  panel it's hit-and-miss.
+- **Rev C:** the standard tooling works as it comes. `idf.py -p PORT flash`, or `esptool` with its own
+  default reset.
+- **Rev B:** the CH340C's handshake lines reach the two reset transistors the opposite way round from the
+  circuit esptool assumes, so its reset asserts BOOT where it means to assert EN and the chip never enters
+  the ROM loader. It fails as `Invalid head of packet` or `No serial data received`, which reads like a bad
+  cable. Use `firmware/tools/revb_reset.py download`, flash with `--before no_reset`, then
+  `firmware/tools/revb_reset.py run`. Rev B's USB is data only, so the board needs a panel attached for
+  power, and 115200 is more reliable than 460800 on this link.
 
-After that, WLED and the ESP-IDF firmware update over Wi-Fi. The Matter firmware updates over serial again
-(BOOT + EN; without an erase, the pairing survives).
+After the first flash, WLED and the ESP-IDF firmware update over Wi-Fi. The Matter firmware updates over
+serial again; without an erase, the pairing survives.
 
 **Switching between firmwares:** each firmware has its own flash layout, so erase the chip when switching
 (`esptool write_flash --erase-all`, or `idf.py erase-flash`). That also removes Wi-Fi settings and Matter
@@ -171,31 +166,30 @@ recorded layout strings and a check of this project's layout parser against a he
 > [`hardware/README.md`](hardware/README.md). The circuit is otherwise unchanged, so the description
 > below covers both.
 
-Rev B was a redesign rather than a revision. Instead of hanging off a cut flex linker it clips beside a
-panel on a standard rigid Nanoleaf linker, the same way the stock controller does, and sits in a printed
-case the same 1 cm thick as a panel. It also fixes the [rev A issues](#known-issues-rev-a) below.
+Rev B was a redesign rather than a revision. It clips beside a panel on a standard rigid Nanoleaf linker,
+the same way the stock controller does, and sits in a printed case the same 1 cm thick as a panel.
 
 ![Rev C board](hardware/render/rev-c-iso.png)
 
 ### The board
 
-A 106.35 x 21.70 mm trapezoid, two layers, 1.6 mm, 63 components. The rev A circuit carries over and the
-gaps in it are filled.
+A 106.35 x 21.70 mm trapezoid, two layers, 1.6 mm, 63 components.
 
 | | |
 |---|---|
 | Panel connection | `J1`, three bare pads that the linker's spring contacts press on, carrying DATA, GND and 42 V. They sit in a pocket in the case, and the board has slots for the linker's snap hooks, as the panels' own PCBs do |
-| Power | Still the panels' own 42 V, so there is no second supply. `U1` TPS54360 buck down to 3.3 V, now with `D3` SMAJ48A clamping the 42 V rail, which rev A left unprotected |
+| Power | Still the panels' own 42 V, so there is no second supply. `U1` TPS54360 buck down to 3.3 V, with `D3` SMAJ48A clamping the 42 V rail |
 | MCU | `U2` keeps the ESP-12F footprint, so an ESP32-C5 or ESP32-C6 module fits. An ESPC5-12 is what is actually fitted, because 5 GHz Wi-Fi and Thread both need the C5 |
-| Panel bus | `U3` and `U4` 74LVC1G125 buffers driven by an RC one-shot, unchanged from rev A, plus a 100 k pull-up on the bus that fixes the C5 strapping problem rev A had |
+| Panel bus | `U3` and `U4` 74LVC1G125 buffers driven by an RC one-shot, plus a 100 k pull-up that holds the bus high so the ESP32-C5's boot straps read correctly with no panel attached |
 | Programming | `J3` USB-C and `U5` CH340C with auto-reset, so flashing needs no buttons and no separate serial adapter. Data only, the board still takes its power from the panels |
 | Buttons | Three on the back for everyday use, pressed through the case. Reset and boot are there too and come off once the board is flashed |
 
 ### The case
 
 An FDM printed tray, a lid and three separate button caps, generated from the board rather than drawn
-against it. `mechanical/export_parts.py` reads the real footprints, courtyards and heights out of KiCad,
-and `mechanical/enclosure.py` turns them into geometry, so the case cannot drift from the layout.
+against it: the real footprints, courtyards and heights are read out of KiCad and turned into geometry, so
+the case cannot drift from the layout. [`hardware/mechanical/`](hardware/mechanical/) holds the STLs, ready
+to print.
 
 **10.00 mm thick**, 11.00 mm across a button cap, which matches a panel. Most of that is not free: the
 linker fixes 6.55 mm of it before any design choice is made, since the plate recess and the plug depth
@@ -221,24 +215,12 @@ the power, colour and brightness buttons.</em></p>
 ### Fabrication
 
 `hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file, generated from the
-current board by `mechanical/make_fab_files.py`, which writes a JLCPCB set alongside it. These are the
-rev C files. The rev B set, which is what was actually sent and built, is in the git history at the
+current board, with a JLCPCB set alongside it. These are the rev C files. The rev B set, which is what was actually sent and built, is in the git history at the
 commit before rev C replaced it. The rev B boards are sponsored by
 **[PCBWay](https://www.pcbway.com/)**, who also supply the assembly.
 
 Full design notes, including what was measured and what went wrong on the way, are in
 [`hardware/README.md`](hardware/README.md).
-
-## Known issues (rev A)
-
-| Issue | Workaround / rev B plan |
-|---|---|
-| `J2` has no GND pin | Take GND from `J1` pin 2 or `C11`. Rev B: 4-pin `J2` (GND, RX0, TX0, 3V3) |
-| On the ESP32-C5, bus TX/RX are on boot-mode strapping pins (GPIO26/27) | Flash with a panel attached, or use `download`. Rev B: move the bus pins, or pull RX high |
-| `D1` is 16 mm from `U1`, which enlarges the switching loop | Works as built. Rev B: place it next to `U1` |
-| No input protection | Mind the polarity. Protection was left out on purpose |
-| No bus pull-up | Not needed with Shapes panels (the panel holds DATA high). Fallback: 10 kΩ from `J1` pin 3 to 3.3 V |
-| ESP32-C6 only: GPIO8 (a boot-mode strap that must be high for download mode) is left unconnected | Untested; may need a 10 kΩ pull-up to 3.3 V. Rev B: pull it up on the board |
 
 ## Thanks to PCBWay
 

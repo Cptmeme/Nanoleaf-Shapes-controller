@@ -19,7 +19,7 @@ index 1e366bc6..05db18c8 100644
 @@ -1,5 +1,6 @@
 -; Local build for the Nanoleaf Shapes interface board (ESPC5-12, ESP32-C5).
 -; Panels: TX GPIO26, RX GPIO27 (found by the board's pin scan); BOOT button on GPIO28.
-+; Builds for the Nanoleaf Shapes interface board (rev A), one per module:
++; Builds for the Nanoleaf Shapes interface board, one per module:
 +;   esp32c5_nanoleaf  ESPC5-12 (ESP32-C5), tested: TX GPIO26, RX GPIO27, BOOT GPIO28
 +;   esp32c6_nanoleaf  WT0132C6-S5 (ESP32-C6), the footprint's module, UNTESTED: TX GPIO3, RX GPIO10, BOOT GPIO9
  ; The board has no DTR/RTS: type `download` on the old firmware's console (or hold BOOT

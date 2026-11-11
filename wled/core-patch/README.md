@@ -1,8 +1,8 @@
 # WLED core patch: a native Nanoleaf Shapes output
 
 > **Most people should use the [usermod](../usermod/nanoleaf_shapes/) instead.** It does the same job without
-> changing WLED, so it builds with WLED as is. This core patch is the original approach, the one tested on the
-> rev A board; see [the overview](../README.md) for the differences.
+> changing WLED, so it builds with WLED as is. This core patch is the original approach, and the one that has
+> actually been run on hardware; see [the overview](../README.md) for the differences.
 
 These patches add an LED output type **"Nanoleaf Shapes"** to [WLED](https://github.com/wled/WLED). WLED then
 drives the panels directly from the interface board. Each panel is one LED, and everything else in WLED
@@ -15,7 +15,7 @@ the wall the way the panels are actually arranged.
 |---|---|
 | Patches | `0001-…` (the output type and 2D map), `0002-…` (the ESP32-C6 board build) |
 | Based on | WLED `main`, commit `961961fd` (17.0.0-dev) |
-| Board builds | `esp32c5_nanoleaf`: ESPC5-12 (ESP32-C5), **tested** on the rev A board with 9 Mini Triangles |
+| Board builds | `esp32c5_nanoleaf`: ESPC5-12 (ESP32-C5), **tested** on hardware with 9 Mini Triangles |
 | | `esp32c6_nanoleaf`: WT0132C6-S5 (ESP32-C6), the module the footprint is drawn for, **untested** |
 | Also compiles | ESP32-C3 and ESP32-S3 (WLED's generic builds, with no board defaults) |
 | Not supported | ESP8266 (its second UART can't receive) |
@@ -79,9 +79,10 @@ esptool.py --chip esp32c6 -p /dev/cu.usbserial-XXXX -b 460800 --before no_reset 
 ```
 
 On the ESP32-C6 the bus pins aren't boot-mode straps, so a panel doesn't affect download mode. The C6 does
-also need GPIO8 high at reset for download mode, and GPIO8 isn't connected on the rev A PCB. Whether BOOT + EN
-works then depends on the module pulling GPIO8 up internally, which is untested. If it doesn't, add a 10 kΩ
-pull-up from GPIO8 (module pin 17, WT0132C6-S5 numbering) to 3.3 V.
+also need GPIO8 high at reset for download mode. The current board pulls module pad 11, which is C6 GPIO8, up
+through 10 kΩ, so that is handled. On a board without that pull-up, whether BOOT + EN works depends on the
+module pulling GPIO8 up internally, which is untested; if it doesn't, add a 10 kΩ pull-up from GPIO8 (module
+pin 17, WT0132C6-S5 numbering) to 3.3 V.
 
 `--erase-all` removes the ESP-IDF firmware's partitions and settings.
 

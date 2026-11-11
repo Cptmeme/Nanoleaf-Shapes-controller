@@ -3,10 +3,16 @@
 Rev C is rev B with the faults that rev B's own bring-up turned up. The board still clips beside a panel
 on a standard rigid Nanoleaf linker, the way the stock controller does, and nothing about the shape of
 the circuit has changed. It replaced rev B in this folder on 2026-11-10. Rev B is still in the git
-history at the commit before that change, and rev A one step further back.
+history at the commit before that change.
 
 The KiCad files keep the name `nanoleaf_shapes`: the schematic stores its component references under that
 project name, and renaming it would make KiCad drop every reference.
+
+> **The generator scripts are not published.** This document describes the Python that writes the board
+> outline, places the parts, cuts the footprints and builds the case, and names those files throughout, but
+> they are not in this repository. `hardware/mechanical/` ships the printable STLs only. Everything they
+> produced is here in full: the KiCad schematic and board, the fabrication files, and the case as STLs you
+> can print without running anything.
 
 ![Rev C board](render/rev-c-iso.png)
 
@@ -78,9 +84,9 @@ for no reason. Cosmetic, and fixed while the rest was open.
 | Enclosure | FDM-printed. The linker pocket is designed from a linker model plus caliper measurements |
 | Module | ESP-12F footprint kept, so the ESP32-C5 and ESP32-C6 modules (and others) still fit |
 
-## Keep from rev A
+## Proven blocks
 
-Both parts are verified on real panels, so they don't change:
+Both of these are verified on real panels, so they carry over unchanged:
 
 - **Buck converter** (TPS54360, 3.31 V): no brownouts at 42 V with Wi-Fi or Thread running.
 - **Bus interface** (U3/U4 buffers, D2/R7/C17 one-shot, R1, R6): 1 Mbaud, touch and hot-plug all work.
@@ -102,14 +108,14 @@ Both parts are verified on real panels, so they don't change:
 
 ### Earlier changes
 
-| # | Change | Why (what happened on rev A) | Parts |
+| # | Change | Why | Parts |
 |---|---|---|---|
-| 1 | **USB-C + CH340C with auto-reset** | `J2` has no GND and no reset or boot control, and an adapter's 3.3 V can't start the radios. Every serial flash needed BOOT + EN by hand, and several failed on loose wiring | USB-C receptacle (USB 2.0), CC1/CC2 5.1 kΩ to GND, CH340C (VCC = V3 = 3V3, 100 nF), 2 × NPN auto-reset (DTR/RTS → EN and the BOOT pad), ESD protection on D+/D− (USBLC6-2SC6) |
+| 1 | **USB-C + CH340C with auto-reset** | The old serial header had no GND and no reset or boot control, and an adapter's 3.3 V cannot start the radios. Every serial flash needed BOOT + EN by hand, and several failed on loose wiring | USB-C receptacle (USB 2.0), CC1/CC2 5.1 kΩ to GND, CH340C (VCC = V3 = 3V3, 100 nF), 2 × NPN auto-reset (DTR/RTS → EN and the BOOT pad), ESD protection on D+/D− (USBLC6-2SC6) |
 | 2 | **100 kΩ pull-up from COM to 3V3** | Without a panel, COM floats. On the ESP32-C5, bus RX is boot strap GPIO27, so download mode only worked with a panel attached. The first loopback frame without a panel also failed | 100 kΩ. U4 still pulls the far side down to about 0.07 V through R1 (2.2 kΩ) |
-| 3 | **10 kΩ pull-up on module pad 11** | ESP32-C6 GPIO8 must be high for download mode; rev A leaves it floating | 10 kΩ. On the C5 this pad is GPIO15, which is neither a boot pin nor used by the flash, so the pull-up is harmless there |
+| 3 | **10 kΩ pull-up on module pad 11** | ESP32-C6 GPIO8 must be high for download mode, and the pad was left floating | 10 kΩ. On the C5 this pad is GPIO15, which is neither a boot pin nor used by the flash, so the pull-up is harmless there |
 | 4 | **TVS on 42 V** | The controller will be clipped onto live panels routinely. Hot-plugging into ceramic input capacitors can ring well above 42 V; the TPS54360 is rated 60 V (65 V absolute maximum). Keep C11: its ESR damps the ringing | SMAJ48A (48 V standoff) |
 | 5 | **Three contact pads instead of `J1`** | The pads replace the cut flex linker. **HASL is fine** -- an earlier note here called for ENIG, on reasoning that does not hold: HASL's ~10-25 um crown on a 1.50 mm pad is nothing against a spring finger's compliance, and the linker inserts, so the springs wipe the pads as they seat rather than pressing statically on tin oxide. ENIG's immersion gold is only ~0.05-0.1 um and wears through in a few dozen matings anyway; the finish for a mated contact is hard electroplated gold, which is a different and dearer process. If a board ever misbehaves, a burnish or a dab of contact enhancer costs a few euros. | Pads per [Mechanical](#mechanical) |
-| 6 | **D1 next to U1** | 16 mm on rev A, which enlarges the switching loop | Layout only |
+| 6 | **D1 next to U1** | It sat 16 mm away, which enlarges the switching loop | Layout only |
 | 7 | Status LED on module pad 18 | Shows pairing or Wi-Fi state. Optional | LED + resistor. Pad 18 is C5 GPIO8 / C6 GPIO19; neither is a boot pin |
 | 8 | Test pads for COM, 3V3, GND, TX0, RX0 | Probing and a fallback serial connection | Pads only |
 
@@ -117,8 +123,8 @@ Both parts are verified on real panels, so they don't change:
 
 ## Schematic
 
-`nanoleaf_shapes.kicad_sch` has all the changes above. The rev A circuit is untouched, so the new parts sit in their
-own block on the right of the sheet (now A3). Like the rest of the schematic, they connect through global labels.
+`nanoleaf_shapes.kicad_sch` has all the changes above. The original circuit is untouched, so the new parts sit in
+their own block on the right of the sheet (now A3). Like the rest of the schematic, they connect through global labels.
 
 | Refs | Part | Nets |
 |---|---|---|
@@ -139,12 +145,13 @@ In the existing circuit: `EN` and `BOOT` labels on U2's pins (SW2 moved to the r
 connection), and pads 11 and 18 lost their no-connect flags.
 
 **Checked with kicad-cli 10.0.3:** ERC gives 0 errors. The 33 warnings are all "Unspecified and Passive pins
-connected", because the easyeda2kicad symbols give their pins no electrical type; rev A has 30 of them. A netlist
-comparison with rev A shows every new net with exactly the intended pins, and every rev A connection intact.
+connected", because the easyeda2kicad symbols give their pins no electrical type; the board before it had 30 of
+them. A netlist comparison against that board shows every new net with exactly the intended pins, and every
+connection it already had still intact.
 
-**Part numbers:** the `JLCPCB` fields had copy-paste errors in rev A: J1 and U4 carried C1525 (the 100 nF
-capacitor), J2 C52923, SW1 C5449052 and SW2 C4211. They didn't matter, because the rev A BOM file listed U3/U4
-correctly and left the others out. Rev B fixes them: U1 C44377, U3/U4 C52140413 (from `../jlc_bom.csv`), and no
+**Part numbers:** the `JLCPCB` fields carried copy-paste errors: J1 and U4 had C1525 (the 100 nF capacitor),
+J2 C52923, SW1 C5449052 and SW2 C4211. They didn't matter, because the BOM file listed U3/U4 correctly and left
+the others out. Rev B fixes them: U1 C44377, U3/U4 C52140413 (from `../jlc_bom.csv`), and no
 number for J1, J2, SW1 and SW2 (not assembled). J1 and J2 are now marked "not in BOM". The new parts reuse the
 design's numbers where the value already exists (10 kΩ C25744, 1 kΩ C11702, 100 nF C1525). The rest still need
 picking at JLCPCB; commonly used ones to check stock against are CH340C C84681, USBLC6-2SC6 C7519, MMBT3904 C20526,
@@ -196,18 +203,18 @@ free to grow for the electronics.
 
 ### Placement
 
-Rev A's layout was discarded rather than extended, because its decoupling was in the wrong place -- all six
+The earlier layout was discarded rather than extended, because its decoupling was in the wrong place -- all six
 100 nF caps sat 8-14 mm from the module's 3V3 pin, in a tidy row, where trace inductance makes them useless,
 and the buck's catch diode was 17.9 mm from U1 with two of three input caps 12-15 mm from VIN.
 
-| | rev A | now |
+| | before | now |
 |---|---|---|
 | Module 3V3 to nearest 100 nF | 8.17 mm | **1.93 mm** (C5, C4, C6 within 3.7) |
 | U1 VIN to nearest input cap | 4.36 mm | **2.51 mm** |
 | U1 SW to the catch diode | n/a | **3.03 mm** |
 | D1 ground to U1 ground | 17.89 mm | **9.80 mm** |
 
-**Everything is on the front.** Rev A had the module and both buttons on the back, which makes the board
+**Everything is on the front.** The module and both buttons used to be on the back, which makes the board
 double-sided to assemble; with all 60 parts on F.Cu, JLCPCB can build the whole thing, so a populated board is
 an option rather than a hand-soldering job. The cost is that the buttons face the wall, which is tolerable --
 they are flashing aids, and `download` replaces them anyway.
@@ -261,7 +268,7 @@ half covered -- dense for two layers but still hand-routable.
 What stops it going further: the module is 17.85 mm tall and J3 is 9.47 mm deep and has to reach the far edge,
 so 27 mm is about the floor, and at that depth the bottom band gets too tight for J3 plus the bus interface.
 
-`J2`, rev A's RX0/TX0/3V3 header, is **gone**. The CH340C gives the same UART0 over USB with auto-reset on top,
+`J2`, the old RX0/TX0/3V3 header, is **gone**. The CH340C gives the same UART0 over USB with auto-reset on top,
 and TP1/TP2 already cover scoping the bus, so it was dead weight. If the USB path ever needs bypassing, those
 signals are still reachable at U5's pins.
 
@@ -1166,7 +1173,6 @@ fouling the step when lifted 0.30 mm. The tray is unchanged, byte for byte.
   146 MB to 8.4 MB, and was then flattened from `hardware/rev-b/` into `hardware/` itself. `replan/` was checked first and held nothing the promoted board did not:
   every file had a counterpart here, and its board was a day older at 297 vias against 310.
   **Note that these files are still untracked**, so those backups were their only history -- there is no
-  restore point behind the current board now. Rev A, which they replaced in the working tree, is still
-  intact at git HEAD.
+  restore point behind the current board now.
 - The enclosure itself. The linker pocket is proven on the test print; the case body around this outline is
   not drawn yet.

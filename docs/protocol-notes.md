@@ -9,7 +9,7 @@ merge and every reference below still resolves. Where these notes point at thems
 N" in words, because both documents now have a section 4, 7 and 8.
 
 **Test setup:**
-- **Hardware:** one assembly of 9 Mini Triangles (NL48) with the stock power supply, driven by the rev A
+- **Hardware:** one assembly of 9 Mini Triangles (NL48) with the stock power supply, driven by this project's
   interface board (ESP32-C5, buffered single-wire bus). Section 9 adds a single Hexagon on the rev B
   board, which is the same bus interface on a board that clips to a panel edge directly.
 - **Layouts tested:**

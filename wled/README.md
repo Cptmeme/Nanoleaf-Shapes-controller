@@ -10,7 +10,7 @@ bus in a background task. **Start with the usermod.**
 | Newer WLED versions | Rebuild with the new WLED | The patches have to be rebased |
 | How it gets the colours | Reads the pixels WLED renders for an LED output you configure (an RGBW type on an unused GPIO) | Adds its own "Nanoleaf Shapes" LED output type |
 | Settings | Config → Usermods: bus pins, automatic 2D map, rotation | Config → LED Preferences |
-| Status | Builds for the ESP32-C5 and ESP32-C6; not yet run on hardware | **Tested** on the rev A board (ESP32-C5) with 9 Mini Triangles |
+| Status | Builds for the ESP32-C5 and ESP32-C6; not yet run on hardware | **Tested** on hardware (ESP32-C5) with 9 Mini Triangles |
 
 The usermod uses the same bus driver as the core patch, restructured so WLED itself stays untouched. The core
 patch came first and is kept for reference, and for anyone who wants the exact build that was tested on the
