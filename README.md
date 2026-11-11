@@ -215,7 +215,7 @@ the power, colour and brightness buttons.</em></p>
 ### Fabrication
 
 `hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file, generated from the
-current board, with a JLCPCB set alongside it. These are the rev C files. The rev B set, which is what was actually sent and built, is in the git history at the
+current board. These are the rev C files. The rev B set, which is what was actually sent and built, is in the git history at the
 commit before rev C replaced it. The rev B boards are sponsored by
 **[PCBWay](https://www.pcbway.com/)**, who also supply the assembly.
 

@@ -661,8 +661,8 @@
         },
         {
           "group_by": false,
-          "label": "JLCPCB",
-          "name": "JLCPCB",
+          "label": "LCSC",
+          "name": "LCSC",
           "show": true
         },
         {

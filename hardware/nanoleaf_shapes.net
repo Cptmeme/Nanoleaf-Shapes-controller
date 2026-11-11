@@ -61,7 +61,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C5449052")
+					(name "LCSC") "C5449052")
 				(field
 					(name "Footprint") "easyeda2kicad:C1210")
 				(field
@@ -76,7 +76,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C5449052")
 			)
 			(property
@@ -121,7 +121,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C5449052")
+					(name "LCSC") "C5449052")
 				(field
 					(name "Footprint") "easyeda2kicad:C1210")
 				(field
@@ -136,7 +136,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C5449052")
 			)
 			(property
@@ -181,7 +181,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C5449052")
+					(name "LCSC") "C5449052")
 				(field
 					(name "Footprint") "easyeda2kicad:C1210")
 				(field
@@ -196,7 +196,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C5449052")
 			)
 			(property
@@ -241,7 +241,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -256,7 +256,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -301,7 +301,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -316,7 +316,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -361,7 +361,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -376,7 +376,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -421,7 +421,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -436,7 +436,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -481,7 +481,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -496,7 +496,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -541,7 +541,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -556,7 +556,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -601,7 +601,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -616,7 +616,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -661,7 +661,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C5449052")
+					(name "LCSC") "C5449052")
 				(field
 					(name "Footprint") "easyeda2kicad:C1210")
 				(field
@@ -676,7 +676,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C5449052")
 			)
 			(property
@@ -721,7 +721,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1664")
+					(name "LCSC") "C1664")
 				(field
 					(name "Footprint") "easyeda2kicad:C0603")
 				(field
@@ -736,7 +736,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1664")
 			)
 			(property
@@ -781,7 +781,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1622")
+					(name "LCSC") "C1622")
 				(field
 					(name "Footprint") "easyeda2kicad:C0603")
 				(field
@@ -796,7 +796,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1622")
 			)
 			(property
@@ -841,7 +841,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C45783")
+					(name "LCSC") "C45783")
 				(field
 					(name "Footprint") "easyeda2kicad:C0805")
 				(field
@@ -856,7 +856,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C45783")
 			)
 			(property
@@ -901,7 +901,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C45783")
+					(name "LCSC") "C45783")
 				(field
 					(name "Footprint") "easyeda2kicad:C0805")
 				(field
@@ -916,7 +916,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C45783")
 			)
 			(property
@@ -961,7 +961,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C45783")
+					(name "LCSC") "C45783")
 				(field
 					(name "Footprint") "easyeda2kicad:C0805")
 				(field
@@ -976,7 +976,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C45783")
 			)
 			(property
@@ -1021,7 +1021,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1530")
+					(name "LCSC") "C1530")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1036,7 +1036,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1530")
 			)
 			(property
@@ -1081,7 +1081,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1096,7 +1096,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1141,7 +1141,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1156,7 +1156,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1201,7 +1201,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1216,7 +1216,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1261,7 +1261,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C52923")
+					(name "LCSC") "C52923")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1276,7 +1276,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C52923")
 			)
 			(property
@@ -1321,7 +1321,7 @@
 			(description "Unpolarized capacitor")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1336,7 +1336,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1380,7 +1380,7 @@
 			(footprint "easyeda2kicad:C0402")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1396,7 +1396,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1440,7 +1440,7 @@
 			(footprint "easyeda2kicad:C0402")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1456,7 +1456,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1500,7 +1500,7 @@
 			(footprint "easyeda2kicad:C0402")
 			(fields
 				(field
-					(name "JLCPCB") "C1525")
+					(name "LCSC") "C1525")
 				(field
 					(name "Footprint") "easyeda2kicad:C0402")
 				(field
@@ -1516,7 +1516,7 @@
 				(description "Unpolarized capacitor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C1525")
 			)
 			(property
@@ -1565,7 +1565,7 @@
 				(field
 					(name "Sim.Pins") "1=K 2=A")
 				(field
-					(name "JLCPCB") "C14996")
+					(name "LCSC") "C14996")
 				(field
 					(name "Footprint") "easyeda2kicad:SMA_L4.3-W2.6-LS5.2-RD")
 				(field
@@ -1588,7 +1588,7 @@
 				(value "1=K 2=A")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C14996")
 			)
 			(property
@@ -1637,7 +1637,7 @@
 				(field
 					(name "Sim.Pins") "1=K 2=A")
 				(field
-					(name "JLCPCB") "C81598")
+					(name "LCSC") "C81598")
 				(field
 					(name "Footprint") "Diode_SMD:D_SOD-123")
 				(field
@@ -1660,7 +1660,7 @@
 				(value "1=K 2=A")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C81598")
 			)
 			(property
@@ -1706,7 +1706,7 @@
 			(description "400W unidirectional Transient Voltage Suppressor, 48.0Vr, SMA(DO-214AC)")
 			(fields
 				(field
-					(name "JLCPCB") "C41376401")
+					(name "LCSC") "C41376401")
 				(field
 					(name "Footprint") "Diode_SMD:D_SMA")
 				(field
@@ -1720,7 +1720,7 @@
 				(description "400W unidirectional Transient Voltage Suppressor, 48.0Vr, SMA(DO-214AC)")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C41376401")
 			)
 			(property
@@ -1765,7 +1765,7 @@
 			(description "Light emitting diode")
 			(fields
 				(field
-					(name "JLCPCB") "C2290")
+					(name "LCSC") "C2290")
 				(field
 					(name "Footprint") "LED_SMD:LED_0603_1608Metric")
 				(field
@@ -1780,7 +1780,7 @@
 				(description "Light emitting diode")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C2290")
 			)
 			(property
@@ -1825,7 +1825,7 @@
 			(description "USB VBUS to the buck input; blocks 42 V from reaching the host")
 			(fields
 				(field
-					(name "JLCPCB") "C14996")
+					(name "LCSC") "C14996")
 				(field
 					(name "Footprint") "Diode_SMD:D_SMA")
 				(field
@@ -1840,7 +1840,7 @@
 				(description "Diode")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C14996")
 			)
 			(property
@@ -1885,7 +1885,7 @@
 			(description "Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)")
 			(fields
 				(field
-					(name "JLCPCB")
+					(name "LCSC")
 				)
 				(field
 					(name "Footprint") "nanoleaf:Nanoleaf_Linker_Pads")
@@ -1901,7 +1901,7 @@
 				(description "Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "")
 			)
 			(property
@@ -1953,7 +1953,7 @@
 			(description "USB 2.0-only 16P Type-C Receptacle connector")
 			(fields
 				(field
-					(name "JLCPCB") "C165948")
+					(name "LCSC") "C165948")
 				(field
 					(name "Footprint") "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12")
 				(field
@@ -1967,7 +1967,7 @@
 				(description "USB 2.0-only 16P Type-C Receptacle connector")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C165948")
 			)
 			(property
@@ -2057,7 +2057,7 @@
 			(description "Inductor")
 			(fields
 				(field
-					(name "JLCPCB") "C20417191")
+					(name "LCSC") "C20417191")
 				(field
 					(name "Footprint") "easyeda2kicad:IND-SMD_L5.2-W5.2_YSPI0530")
 				(field
@@ -2072,7 +2072,7 @@
 				(description "Inductor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C20417191")
 			)
 			(property
@@ -2118,7 +2118,7 @@
 			(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
 			(fields
 				(field
-					(name "JLCPCB") "C7420353")
+					(name "LCSC") "C7420353")
 				(field
 					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
 				(field
@@ -2132,7 +2132,7 @@
 				(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C7420353")
 			)
 			(property
@@ -2181,7 +2181,7 @@
 			(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
 			(fields
 				(field
-					(name "JLCPCB") "C7420353")
+					(name "LCSC") "C7420353")
 				(field
 					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
 				(field
@@ -2195,7 +2195,7 @@
 				(description "0.2A Ic, 40V Vce, Small Signal NPN Transistor, SOT-23")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C7420353")
 			)
 			(property
@@ -2243,7 +2243,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25879")
+					(name "LCSC") "C25879")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2258,7 +2258,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25879")
 			)
 			(property
@@ -2303,7 +2303,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25792")
+					(name "LCSC") "C25792")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2318,7 +2318,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25792")
 			)
 			(property
@@ -2363,7 +2363,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25756")
+					(name "LCSC") "C25756")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2378,7 +2378,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25756")
 			)
 			(property
@@ -2423,7 +2423,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C4211")
+					(name "LCSC") "C4211")
 				(field
 					(name "Footprint") "easyeda2kicad:R0603")
 				(field
@@ -2438,7 +2438,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C4211")
 			)
 			(property
@@ -2483,7 +2483,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C23137")
+					(name "LCSC") "C23137")
 				(field
 					(name "Footprint") "easyeda2kicad:R0603")
 				(field
@@ -2498,7 +2498,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C23137")
 			)
 			(property
@@ -2543,7 +2543,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C11702")
+					(name "LCSC") "C11702")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2558,7 +2558,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C11702")
 			)
 			(property
@@ -2603,7 +2603,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25744")
+					(name "LCSC") "C25744")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2618,7 +2618,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25744")
 			)
 			(property
@@ -2663,7 +2663,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25091")
+					(name "LCSC") "C25091")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2678,7 +2678,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25091")
 			)
 			(property
@@ -2723,7 +2723,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25744")
+					(name "LCSC") "C25744")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2738,7 +2738,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25744")
 			)
 			(property
@@ -2783,7 +2783,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C11702")
+					(name "LCSC") "C11702")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2798,7 +2798,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C11702")
 			)
 			(property
@@ -2843,7 +2843,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25905")
+					(name "LCSC") "C25905")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2858,7 +2858,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25905")
 			)
 			(property
@@ -2903,7 +2903,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25905")
+					(name "LCSC") "C25905")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2918,7 +2918,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25905")
 			)
 			(property
@@ -2963,7 +2963,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25744")
+					(name "LCSC") "C25744")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -2978,7 +2978,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25744")
 			)
 			(property
@@ -3023,7 +3023,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25744")
+					(name "LCSC") "C25744")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -3038,7 +3038,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25744")
 			)
 			(property
@@ -3083,7 +3083,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25741")
+					(name "LCSC") "C25741")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -3098,7 +3098,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25741")
 			)
 			(property
@@ -3143,7 +3143,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C25744")
+					(name "LCSC") "C25744")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -3158,7 +3158,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C25744")
 			)
 			(property
@@ -3203,7 +3203,7 @@
 			(description "Resistor")
 			(fields
 				(field
-					(name "JLCPCB") "C11702")
+					(name "LCSC") "C11702")
 				(field
 					(name "Footprint") "easyeda2kicad:R0402")
 				(field
@@ -3218,7 +3218,7 @@
 				(description "Resistor")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C11702")
 			)
 			(property
@@ -3269,7 +3269,7 @@
 				(field
 					(name "LCSC Part") "C720477")
 				(field
-					(name "JLCPCB") "C720477")
+					(name "LCSC") "C720477")
 				(field
 					(name "Footprint") "Button_Switch_SMD:SW_SPST_TS-1088-xR020")
 				(field
@@ -3296,7 +3296,7 @@
 				(value "C720477")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C720477")
 			)
 			(property
@@ -3343,7 +3343,7 @@
 				(field
 					(name "LCSC Part") "C720477")
 				(field
-					(name "JLCPCB") "C720477")
+					(name "LCSC") "C720477")
 				(field
 					(name "Footprint") "Button_Switch_SMD:SW_SPST_TS-1088-xR020")
 				(field
@@ -3370,7 +3370,7 @@
 				(value "C720477")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C720477")
 			)
 			(property
@@ -3410,7 +3410,7 @@
 			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 			(fields
 				(field
-					(name "JLCPCB") "C318884")
+					(name "LCSC") "C318884")
 				(field
 					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 				(field
@@ -3426,7 +3426,7 @@
 				(description "")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C318884")
 			)
 			(property
@@ -3466,7 +3466,7 @@
 			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 			(fields
 				(field
-					(name "JLCPCB") "C318884")
+					(name "LCSC") "C318884")
 				(field
 					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 				(field
@@ -3482,7 +3482,7 @@
 				(description "")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C318884")
 			)
 			(property
@@ -3522,7 +3522,7 @@
 			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 			(fields
 				(field
-					(name "JLCPCB") "C318884")
+					(name "LCSC") "C318884")
 				(field
 					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
 				(field
@@ -3538,7 +3538,7 @@
 				(description "")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C318884")
 			)
 			(property
@@ -3585,7 +3585,7 @@
 				(field
 					(name "LCSC Part") "C44377")
 				(field
-					(name "JLCPCB") "C44377")
+					(name "LCSC") "C44377")
 				(field
 					(name "Footprint") "easyeda2kicad:SOIC-8_L5.0-W4.0-P1.27-LS6.0-BL-EP2.0")
 				(field
@@ -3612,7 +3612,7 @@
 				(value "C44377")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C44377")
 			)
 			(property
@@ -3679,7 +3679,7 @@
 				(field
 					(name "LCSC Part") "C52139916")
 				(field
-					(name "JLCPCB") "C52139916")
+					(name "LCSC") "C52139916")
 				(field
 					(name "Footprint") "easyeda2kicad:WT0132C6-S5")
 				(field
@@ -3707,7 +3707,7 @@
 				(value "C52139916")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C52139916")
 			)
 			(property
@@ -3814,7 +3814,7 @@
 				(field
 					(name "LCSC Part") "C52140413")
 				(field
-					(name "JLCPCB") "C52140413")
+					(name "LCSC") "C52140413")
 				(field
 					(name "Footprint") "easyeda2kicad:SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BR")
 				(field
@@ -3841,7 +3841,7 @@
 				(value "C52140413")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C52140413")
 			)
 			(property
@@ -3893,7 +3893,7 @@
 				(field
 					(name "LCSC Part") "C52140413")
 				(field
-					(name "JLCPCB") "C52140413")
+					(name "LCSC") "C52140413")
 				(field
 					(name "Footprint") "easyeda2kicad:SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BR")
 				(field
@@ -3920,7 +3920,7 @@
 				(value "C52140413")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C52140413")
 			)
 			(property
@@ -3967,7 +3967,7 @@
 			(description "USB serial converter, crystal-less, UART, SOIC-16")
 			(fields
 				(field
-					(name "JLCPCB") "C84681")
+					(name "LCSC") "C84681")
 				(field
 					(name "Footprint") "Package_SO:SOIC-16_3.9x9.9mm_P1.27mm")
 				(field
@@ -3981,7 +3981,7 @@
 				(description "USB serial converter, crystal-less, UART, SOIC-16")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C84681")
 			)
 			(property
@@ -4069,7 +4069,7 @@
 			(description "Very low capacitance ESD protection diode, 2 data-line, SOT-23-6")
 			(fields
 				(field
-					(name "JLCPCB") "C2827654")
+					(name "LCSC") "C2827654")
 				(field
 					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-6")
 				(field
@@ -4083,7 +4083,7 @@
 				(description "Very low capacitance ESD protection diode, 2 data-line, SOT-23-6")
 			)
 			(property
-				(name "JLCPCB")
+				(name "LCSC")
 				(value "C2827654")
 			)
 			(property

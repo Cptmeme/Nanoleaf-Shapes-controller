@@ -60,7 +60,7 @@ copper instead.
 schematic disagreed with the board, which was routed correctly. ERC had been reporting it as an isolated
 pin label the whole time.
 
-**The schematic was missing part numbers.** Fourteen symbols carried no JLCPCB code, which left the BOM
+**The schematic was missing part numbers.** Fourteen symbols carried no part number at all, which left the BOM
 depending on the board alone and the two files disagreeing. Every part in the BOM now carries one.
 
 **U2 named the wrong module.** The schematic still said WT0132C6-S5 while the board had been moved to the
@@ -149,12 +149,12 @@ connected", because the easyeda2kicad symbols give their pins no electrical type
 them. A netlist comparison against that board shows every new net with exactly the intended pins, and every
 connection it already had still intact.
 
-**Part numbers:** the `JLCPCB` fields carried copy-paste errors: J1 and U4 had C1525 (the 100 nF capacitor),
-J2 C52923, SW1 C5449052 and SW2 C4211. They didn't matter, because the BOM file listed U3/U4 correctly and left
-the others out. Rev B fixes them: U1 C44377, U3/U4 C52140413 (from `../jlc_bom.csv`), and no
-number for J1, J2, SW1 and SW2 (not assembled). J1 and J2 are now marked "not in BOM". The new parts reuse the
+**Part numbers:** the `LCSC` fields carried copy-paste errors: J1 and U4 had C1525 (the 100 nF capacitor),
+J2 C52923, SW1 C5449052 and SW2 C4211. They didn't matter, because the BOM listed U3/U4 correctly and left the
+others out. Rev B fixes them: U1 C44377, U3/U4 C52140413, and no number for J1, J2, SW1 and SW2 (not
+assembled). J1 and J2 are now marked "not in BOM". The new parts reuse the
 design's numbers where the value already exists (10 kΩ C25744, 1 kΩ C11702, 100 nF C1525). The rest still need
-picking at JLCPCB; commonly used ones to check stock against are CH340C C84681, USBLC6-2SC6 C7519, MMBT3904 C20526,
+picking; commonly used ones to check stock against are CH340C C84681, USBLC6-2SC6 C7519, MMBT3904 C20526,
 HRO TYPE-C-31-M-12 C165948, 5.1 kΩ 0402 C25905 and 100 kΩ 0402 C25741, plus an SMAJ48A and a 0603 LED.
 
 **USB ground:** with USB connected, the computer's ground joins the panels' ground. That's fine as long as the
@@ -215,7 +215,7 @@ and the buck's catch diode was 17.9 mm from U1 with two of three input caps 12-1
 | D1 ground to U1 ground | 17.89 mm | **9.80 mm** |
 
 **Everything is on the front.** The module and both buttons used to be on the back, which makes the board
-double-sided to assemble; with all 60 parts on F.Cu, JLCPCB can build the whole thing, so a populated board is
+double-sided to assemble; with all 60 parts on F.Cu, an assembler can build the whole thing, so a populated board is
 an option rather than a hand-soldering job. The cost is that the buttons face the wall, which is tolerable --
 they are flashing aids, and `download` replaces them anyway.
 
@@ -363,23 +363,19 @@ routed -- but if it ever moves, the vias stay behind and nothing warns you.
 The exposed pad's own paste aperture is still a solid 2.00 x 2.00 mm, 100% coverage, where KiCad's
 equivalent splits it four ways at 65% and IPC-7093 wants roughly 50-80%. Unchanged and still open.
 
-### Ordering from PCBWay rather than JLCPCB
+### Ordering
 
-PCBWay has **no parts library to browse** -- that is the main difference. It sources globally by manufacturer
-part number through authorised distributors (Digi-Key, Mouser, Arrow, Avnet), with kitted, partial-turnkey and
-full-turnkey options, and quotes by hand rather than pricing instantly online. So:
+PCBWay sources globally by manufacturer part number through authorised distributors, with kitted,
+partial-turnkey and full-turnkey options. The BOM it needs is designator, quantity, package and
+*manufacturer part number*; for passives with no MPN, value and package are enough. It also wants a
+centroid file whose designators match the BOM, and an assembly drawing or silkscreen showing polarity.
+All of that is in `fab/pcbway/`.
 
-- **The LCSC `C...` numbers in the BOM mean nothing to PCBWay.** The BOM needs designator, quantity, package
-  and *manufacturer part number*; for passives with no MPN, value and package are enough. No PDFs.
-- **The JLCPCB basic-versus-extended distinction disappears.** Parts picked because they were "basic" lose that
-  reason, though there is no cause to change anything that works.
-- **Spell out what must not be substituted.** The 100 V X7R ceramics on the 42 V rail are the dangerous ones:
-  a substitution to a lower voltage or a Y5V dielectric breaks the design silently.
-- Also needed: a pick-and-place/centroid file whose designators match the BOM, and an assembly drawing or
-  silkscreen showing polarity.
-
-To browse what is actually available, use a distributor rather than PCBWay: <https://www.lcsc.com>,
-<https://www.digikey.com>, <https://www.mouser.com>. Take the MPN from there.
+- **Spell out what must not be substituted.** The 100 V X7R ceramics on the 42 V rail are the dangerous
+  ones: a substitution to a lower voltage or a Y5V dielectric breaks the design silently.
+- The `LCSC` `C...` numbers in the schematic identify the exact part at a distributor. Take the
+  manufacturer part number from there: <https://www.lcsc.com>, <https://www.digikey.com>,
+  <https://www.mouser.com>.
 
 ### Ground stitching
 
@@ -1128,9 +1124,9 @@ fouling the step when lifted 0.30 mm. The tray is unchanged, byte for byte.
   off centre). Cosmetic only; four candidate transforms were tried and none was verifiable, so it was left
   at the library default rather than carry an unverified fix.
 - CH340C stock (fallback: CH343P).
-- **15 footprints still have no `JLCPCB` code**, so JLCPCB cannot source them automatically: D3, D4, J1, J3,
-  Q1, Q2, R11, R12, R15, SW3, SW4, SW6, U5, U6, and U2 (which carries `C9900241604` under `LCSC Part` but not
-  under `JLCPCB`). SW1 and SW2 are done: TS-1088-AR02016 is **C720477**, set on both the symbol and the
+- **15 footprints still have no `LCSC` code**, so they cannot be sourced automatically: D3, D4, J1, J3,
+  Q1, Q2, R11, R12, R15, SW3, SW4, SW6, U5, U6, and U2 (which carries `C9900241604` under `LCSC Part` but
+  not under `LCSC`). SW1 and SW2 are done: TS-1088-AR02016 is **C720477**, set on both the symbol and the
   footprint. Several of the rest are in the stock-check list further up -- CH340C C84681, USBLC6-2SC6 C7519,
   MMBT3904 C20526.
 - **Two `lib_footprint_mismatch` warnings, J3 and U5**, against `Connector_USB` and `Package_SO`. Same class of
