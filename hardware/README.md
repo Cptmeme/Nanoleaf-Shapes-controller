@@ -8,11 +8,11 @@ history at the commit before that change.
 The KiCad files keep the name `nanoleaf_shapes`: the schematic stores its component references under that
 project name, and renaming it would make KiCad drop every reference.
 
-> **The generator scripts are not published.** This document describes the Python that writes the board
-> outline, places the parts, cuts the footprints and builds the case, and names those files throughout, but
-> they are not in this repository. `hardware/mechanical/` ships the printable STLs only. Everything they
-> produced is here in full: the KiCad schematic and board, the fabrication files, and the case as STLs you
-> can print without running anything.
+> **The board and the case are generated, and the generators are not published.** Python writes the board
+> outline, places the parts, cuts the linker footprint and builds the case; those scripts stay on the
+> author's machine. Everything they produced is here in full: the KiCad schematic and board, the
+> fabrication files, and the case as STLs you can print without running anything. What follows describes
+> what the generators do and why, because that is what explains the board.
 
 ![Rev C board](render/rev-c-iso.png)
 
@@ -247,7 +247,7 @@ loop came through unchanged, but three things got worse:
 - the CC resistors sit 6 to 12 mm from their pads, which is cosmetic since they are DC pulldowns.
 
 
-**The module's printed antenna is a keepout**, x 118.0..126.4, y 48.8..67.0 (`ANTENNA` in `board.py`). It
+**The module's printed antenna is a keepout**, x 118.0..126.4, y 48.8..67.0 (the `ANTENNA` keepout). It
 overhangs the module's pads by 8.62 mm. Nothing is placed in it and the ground pour has a hole punched in its
 polygon there -- a rule area would be the obvious way, but KiCad 10's `ZONE_FILLER` ignores those when driven
 from Python.
@@ -345,7 +345,7 @@ errors, against SW4 on the other side. The same library also gave them `*.Cu *.P
 mask openings and paste apertures on *both* faces, leaving bare GND copper 0.271 mm from SW4's BTN_LEFT pad.
 
 They are now **ordinary GND vias on the board**, placed by hand, and gone from both the board footprint and
-the library copy (`revb_drop_thermal_pads.py`). Nothing is lost: same four holes, same 0.61 / 0.30 mm, same
+the library copy. Nothing is lost: same four holes, same 0.61 / 0.30 mm, same
 net, same places, still inside the exposed pad's mask and paste window, and tented on the back by default.
 Four warnings and two errors stop being asked about, and U1 matches its library again.
 
@@ -381,28 +381,12 @@ full-turnkey options, and quotes by hand rather than pricing instantly online. S
 To browse what is actually available, use a distributor rather than PCBWay: <https://www.lcsc.com>,
 <https://www.digikey.com>, <https://www.mouser.com>. Take the MPN from there.
 
-### Files
-
-| File | Contents |
-|---|---|
-| `mechanical/board.py` | The outline, the joint datum and the linker keepouts; shared with the enclosure so the two cannot drift |
-| `mechanical/revb_outline.py` | Writes the outline, the linker pads, the ground pour and the escape tracks into the board |
-| `mechanical/revb_place.py` | Places all 60 parts and adds the 19 that were only ever in the schematic |
-| `mechanical/revb_check.py` | Clears stale routing and checks containment, courtyards, keepouts and decoupling distances |
-| `mechanical/revb_place_rest.py` | Places only the parked parts, and ties U1's thermal vias to GND |
-| `mechanical/revb_centre_buttons.py` | Centres the four buttons on the midline and on the quarter points either side of the linker |
-| `mechanical/revb_stitch.py` | Grid of ground stitching vias; dry run by default, `--place` to apply |
-| `mechanical/revb_tent_thermal_vias.py` | Checks and fixes U1's thermal vias -- copper-only layers in the easyeda2kicad library and on the board, plus their GND net and solid zone connection. Run it after any footprint or netlist update |
-
-They all need KiCad's own Python, for `pcbnew`:
-`/Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/3.9/bin/python3`.
-
 ### Ground stitching
 
-**197 vias on the board, 168 of them GND.** 43 came from `revb_stitch.py`, 0.6/0.3 mm, on a
+**197 vias on the board, 168 of them GND.** 43 came from the stitching grid, 0.6/0.3 mm, on a
 **3.0 mm grid centred on the board**, so they fall in seven straight rows at
-y 47.825 to 65.825 and in straight columns. `revb_stitch.py` generates the grid and then throws away every
-point that would not be a good via. Of the 219 grid points that land on the board:
+y 47.825 to 65.825 and in straight columns. The grid is generated and then every point that would not make
+a good via is thrown away. Of the 219 grid points that land on the board:
 
 | Rejected for | Count |
 |---|---|
@@ -428,7 +412,7 @@ The re-routed board carries the real stitching. It was built in `replan/` and **
 `nanoleaf_shapes.kicad_pcb` on 2026-10-10** once DRC came back clean, so `replan/` is now a
 superseded copy, since deleted. The board and schematic in `hardware/` are the live ones. Pitch went from 3.0 mm to **1.4 mm** after a
 sweep (3.0 -> 42 vias, 2.5 -> 48, 2.2 -> 72, 2.0 -> 79, 1.8 -> 96, 1.6 -> 121, 1.4 -> 177), giving **15 rows**
-and **256 GND vias** on the board as shipped: the grid contributed 177, `revb_fix_islands.py` added the two
+and **256 GND vias** on the board as shipped: the grid contributed 177, the island fix added the two
 that rescue stranded ground pins, one was dropped as too close to Q2, and the rest were placed by hand. Of 1005 grid points on the board:
 
 | Rejected for | Count |
@@ -461,7 +445,7 @@ grid points all fell inside SW3's pad keepout, and island B is boxed in so tight
 breadth-first path search found **no escape on F.Cu at all** -- not a 0.25 mm track, not even 0.12 mm at 0.15 mm
 clearance. A via was the only way out of island B.
 
-`mechanical/revb_fix_islands.py` places one standard 0.6/0.3 mm via at the widest point *inside each island*,
+One standard 0.6/0.3 mm via goes at the widest point *inside each island*,
 found by binary-searching the largest free disc with KiCad's own collision test. Two details matter:
 
 * The search has to be constrained to the island polygon, not the pour at large. The widest point *near*
@@ -481,7 +465,7 @@ as 0.600 x 1.475 and the via cleared on the y axis by arithmetic that described 
 orientation. The same code also filtered tracks on `GetClass() == "PCB_TRACK"`, which skips `PCB_ARC`
 entirely, and approximated every pad as a rectangle.
 
-`revb_stitch.py` now asks KiCad instead -- `GetEffectiveShape(layer).Collide(disc, clearance)` -- which is
+The check now asks KiCad instead -- `GetEffectiveShape(layer).Collide(disc, clearance)` -- which is
 exact and covers rotation, roundrects, ovals, custom pad shapes and arcs for free. An audit of all 229 vias
 with the exact test found exactly one violation, the Q2 one, and it is gone. The 24 vias sitting between
 0.20 and 0.30 mm are all hand-placed and legal.
@@ -554,36 +538,30 @@ modelled from the numbers below.
 - **Pad position along the linker:** the springs sit in the middle of the plug (checked on a real linker), so the
   pads are centred on it, 10.77 mm from the joint.
 
-### Files
+The three pads ship as a KiCad footprint, `nanoleaf.pretty/Nanoleaf_Linker_Pads.kicad_mod`: bare copper with
+no paste, the snap-hook slots on Edge.Cuts, and a courtyard covering the printed pocket walls so nothing else
+is placed where the case needs the room. The project's `fp-lib-table` names that library `nanoleaf`.
 
-| File | Contents |
-|---|---|
-| `mechanical/linker.py` | Every linker and pad dimension, shared by the two scripts below |
-| `mechanical/pocket_test.py` → `pocket_test.stl`, `pocket_test_{lower,upper}.stl` (**not committed, run the script**) | Printable test piece: the plate recess, one pocket with a PCB-height floor, and the two slots. Written whole and split at the latch ledge; pass a clearance (`python pocket_test.py 0.10`) for a tighter-gripping variant, named `_c010` |
-| `mechanical/linker_footprint.py` → `nanoleaf.pretty/Nanoleaf_Linker_Pads.kicad_mod` | KiCad footprint: the three pads (bare copper, no paste), the slots on Edge.Cuts, and a courtyard for the printed pocket walls. The project's `fp-lib-table` names the library `nanoleaf` |
-
-Both scripts run with Python 3; the test piece also needs `pip install manifold3d numpy`. Checked in software
-with the linker model sitting flush in the recess: the plate and plug touch nothing, and the barbs catch under
-the pocket wall after 0.3 mm of pull.
+Checked in software with the linker model sitting flush in the recess: the plate and plug touch nothing,
+and the barbs catch under the pocket wall after 0.3 mm of pull.
 
 ### Test print
 
-Run `python pocket_test.py` to generate the STLs, which are not kept in the repository. Print the **split
-pair**, `pocket_test_lower.stl` and `pocket_test_upper.stl`, both as they come, bottom on the bed, and stack them on the two 3 mm registration pins. Neither half has an overhang. `pocket_test.stl` is the
-same block in one piece, for reference and for a resin or machined part — on FDM it prints the ledge the barb
-catches as a cantilever reaching inward over the slot, so the latching corner is the droopiest point of an
-overhang and rounds away. Then push one end of a real rigid linker in:
+The test piece prints as a **split pair**, both halves as they come, bottom on the bed, stacked on two 3 mm
+registration pins. Neither half has an overhang. There is a one-piece version as well, for reference and for
+a resin or machined part. On FDM that one prints the ledge the barb catches as a cantilever reaching inward
+over the slot, so the latching corner is the droopiest point of an overhang and rounds away. Then push one end of a real rigid linker in:
 
 1. It clicks in and holds.
 2. The linker plate sits flush in the recess, level with the top face.
 3. The springs touch the floor: look for marks, or feel them compress.
 
-If the fit is tight or loose, or it seats without latching, change `CLEAR` — run `python pocket_test.py 0.10` for
-a variant. Clearance is the only lever on grip: tighter clearance, deeper grip, until the plug stops going in.
+If the fit is tight or loose, or it seats without latching, change the clearance. It is the only lever on
+grip: tighter clearance, deeper grip, until the plug stops going in.
 
 **Result, 2026-10-03:** the first print was cut only to the hook band (`HOOK_Y`), and the linker's plain locating
-posts fouled the floor. The slots now span the plug (`SLOT_Y` in `linker.py`), which both the test piece and the
-footprint follow. Still to measure on a panel PCB: how much wider than the hooks the real slots are.
+posts fouled the floor. The slots now span the plug (`SLOT_Y`), which both the test piece and the footprint
+follow. Still to measure on a panel PCB: how much wider than the hooks the real slots are.
 
 **Result, 2026-10-04:** the linker seats fully and flush but does not latch. Two causes, both addressed, neither
 confirmed yet, as there are no calipers to hand:
@@ -600,12 +578,12 @@ anything else.
 ### Enclosure
 
 Two printed parts: a **tray** the board drops into, and a **lid** carrying the three back buttons.
-`enclosure.py` builds both, `board_mock.py` builds a printable stand-in for the assembled board, and both
-read `parts.json`, which `export_parts.py` writes out of the board under KiCad's Python. So the case is
-cut to the board KiCad actually has, not to a drawing of it.
+Both are generated, along with a printable stand-in for the assembled board, from `parts.json`, which is
+written straight out of the board under KiCad's own Python. So the case is cut to the board KiCad actually
+has, not to a drawing of it.
 
 **Nothing in the thickness direction is a free choice until the board's back face.** The linker fixes the
-first three rows: the case edge has to fall halfway along the linker, and `pocket_test.py` proved the
+first three rows: the case edge has to fall halfway along the linker, and the test print proved the
 recess and pocket against a real one.
 
 | z | | |
@@ -695,12 +673,12 @@ is already the plan once auto-reset is proven, would take it to 10.00.
 
 **The lid's bosses are sized from the plunger, not from a constant.** Each of these footprints draws its
 pressable face as a circle at the middle of its fab outline -- PTS645 3.50 mm, TS-1187A 2.00, KMR2 1.60 --
-and `export_parts.py` reads it. This matters: the boss was a fixed 3.6 mm square, which on a 2.00 mm
+and the part export reads it. This matters: the boss was a fixed 3.6 mm square, which on a 2.00 mm
 plunger would have landed on the switch housing and never pressed it. It was also 0.1 mm wider than the
 PTS645's own plunger, so it was marginally wrong before as well.
 
 **SW1 and SW2 do not size the case.** They are fitted for bring-up and desoldered before the board goes
-in, so `export_parts.py` marks them `in_case: false` and the enclosure, the mock and the fit check all skip
+in, so the export marks them `in_case: false` and the enclosure, the mock and the fit check all skip
 them. This is not DNP -- they are on the board and in the BOM, it only means the case need not make room
 for them. It matters because at 2.00 mm they are taller than the 1.50 mm user buttons, and leaving them in
 the sum put the case at 10.50 instead of 10.00.
@@ -742,19 +720,19 @@ clearing both the lid and the board.
 the lid, which it never does -- the whole point is a sliding fit. Captivity is engagement, not
 interference, so it measures how much ridge is left under the step instead.
 
-**`enclosure.py` checks itself.** It intersects both parts against the populated board and reports any
+**The case checks itself.** The build intersects both parts against the populated board and reports any
 clash by reference. Cavities are cut to courtyards, which overstate, but the check runs against fab-layer
 bodies, which do not -- so the case gives away more room than it is checked against. Both parts currently
 report clear.
 
 ### The real board, from KiCad's models
 
-`board_mock.py` draws every part as a block of its bounding box. `board_real.py` does the other thing: it
-runs `kicad-cli pcb export stl`, which walks the board and writes the **actual 3D models**, so the USB
-connector is a connector rather than a brick. KiCad writes that export in page coordinates with y and z
-reversed, so the script turns it a half turn about X and lifts it by `Z_PCB_BACK`, which lands it in the
-same frame as the tray and the lid -- a rotation, not a mirror, so the winding survives. It also rewrites
-the 28 MB ASCII export as **5.5 MB binary**, the same mesh in a fifth of the space.
+The mock draws every part as a block of its bounding box. The other stand-in does the opposite: it runs
+`kicad-cli pcb export stl`, which walks the board and writes the **actual 3D models**, so the USB connector
+is a connector rather than a brick. KiCad writes that export in page coordinates with y and z reversed, so
+it is turned a half turn about X and lifted by `Z_PCB_BACK`, which lands it in the same frame as the tray
+and the lid -- a rotation, not a mirror, so the winding survives. It also rewrites the 28 MB ASCII export
+as **5.5 MB binary**, the same mesh in a fifth of the space.
 
 **It found a real error in the height table.** Exporting each part on its own and measuring it against the
 table:
@@ -828,18 +806,10 @@ courtyards are not enough, which is how the 0.60 mm move got written in the firs
 The enclosure around the board: the pocket from this test, a USB-C opening, BOOT reachable, and the module
 antenna at the edge away from the pads and the buck.
 
-## Rebuilding the case for the promoted board
+## The case against the promoted board
 
-Re-run in this order; each step reads the one before it:
-
-    /Applications/KiCad/KiCad.app/Contents/Frameworks/Python.framework/Versions/3.9/bin/python3 \
-        mechanical/export_parts.py nanoleaf_shapes.kicad_pcb        # -> parts.json
-    python3 mechanical/enclosure.py                                 # -> tray, lid, three caps
-    python3 mechanical/board_mock.py                                # -> the printable board stand-in
-    python3 mechanical/board_real.py                                # -> board_real.stl from the 3D models
-
-Against the re-routed board the result is **10.00 mm total**, unchanged, with **0 reliefs** and **0.00 mm²**
-of front-part intrusion into the 150.55 mm² brace band -- the linker pocket is solid the whole way round,
+Rebuilt against the re-routed board, the case comes to **10.00 mm total**, unchanged, with **0 reliefs**
+and **0.00 mm²** of front-part intrusion into the 150.55 mm² brace band -- the linker pocket is solid the whole way round,
 which is what J1's published keepout bought. The fit check is clear on the tray, the lid and all three caps,
 and so is the stronger check against `board_real.stl`, where the only intersection left is SW1/SW2 (1.18 mm³),
 desoldered before the case goes on.
@@ -848,7 +818,7 @@ Three data defects had to be fixed first, and all three were silent.
 
 ### Courtyards that exclude their own leads
 
-`export_parts.py` trusted `F.Courtyard` whenever a footprint had one. Twelve easyeda2kicad footprints draw
+The part export trusted `F.Courtyard` whenever a footprint had one. Twelve easyeda2kicad footprints draw
 that courtyard around the component **body** and leave the leads outside it. U1 is the worst:
 `SOIC-8_L5.0-W4.0-P1.27-LS6.0-BL-EP2.0` is a 6.0 mm lead span inside a 3.95 mm courtyard, and its 3D model
 is correctly 6.00 mm wide. A support post was therefore placed at (69.75, 57.35), resting on U1's leads --
@@ -867,7 +837,7 @@ the leads were not there.
 
 A further 38 footprints -- every 0402/0603/0805 passive -- carry **no courtyard at all**, and those already
 fell back to the pad bounding box. The envelope is now the **union of the courtyard and the pads** in both
-`export_parts.py` and `revb_linker_keepout.py`, since neither source is trustworthy alone. The keepout still
+the part export and the keepout check, since neither source is trustworthy alone. The keepout still
 reports 0 offenders with the corrected, larger envelopes, so the pocket stays solid.
 
 ### The three user buttons had no 3D model
@@ -878,7 +848,7 @@ exist in this install. SW3, SW4 and SW6 were simply absent from `board_real.stl`
 nothing to check at the one place it matters most -- under the three button caps.
 
 easyeda2kicad has the part as **C318884** (`SW-SMD_4P-L5.1-W5.1-P3.70-LS6.5-TL_H1.5`).
-`mechanical/revb_add_switch_model.py` borrows that model and leaves the footprint alone: the two share an
+The board borrows that model and leaves the footprint alone: the two share an
 origin, easyeda2kicad's pads at (±3.00, ±1.85) against KiCad's (±3.000, ±1.875), so no offset or rotation is
 needed. It lives on the board, not in the library, so **"update footprints from symbols" will drop it** --
 re-run the script if that happens.
@@ -899,7 +869,7 @@ than on a thinner case.
 
 ### The board mock printed one half upside down
 
-`board_mock.py` splits the board down its mid-plane so each half prints with its own parts facing up and
+The mock splits the board down its mid-plane so each half prints with its own parts facing up and
 needs no supports. Two things in that split were wrong, and both only show up if you measure the written
 STL rather than read the code.
 
