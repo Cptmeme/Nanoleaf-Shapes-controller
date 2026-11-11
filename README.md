@@ -202,7 +202,7 @@ button caps drop in from the inside and are held by a ridge. The board itself ca
 **The case has been printed and fitted to a real board**, which took several rounds. The button caps
 held the switches closed until the third print, and the snap fit was settled by feel rather than by the
 software clearance checks, which had already turned out to be wrong more than once here. The numbers in
-`mechanical/` are the ones that worked on one FDM printer with the my settings, so expect to tune
+`mechanical/` are the ones that worked on one FDM printer with my settings, so expect to tune
 them for yours. See [`hardware/README.md`](hardware/README.md) for what specifically to watch.
 
 <p align="center">
