@@ -13,7 +13,7 @@ the wall the way the panels are actually arranged.
 
 | | |
 |---|---|
-| Patches | `0001-…` (the output type and 2D map), `0002-…` (the ESP32-C6 board build) |
+| Patches | `0001-…` (the output type and 2D map), `0002-…` (the ESP32-C6 board build), `0003-…` (the enumeration and 2D map fixes below) |
 | Based on | WLED `main`, commit `961961fd` (17.0.0-dev) |
 | Board builds | `esp32c5_nanoleaf`: ESPC5-12 (ESP32-C5), **tested** on hardware with 9 Mini Triangles |
 | | `esp32c6_nanoleaf`: WT0132C6-S5 (ESP32-C6), the module the footprint is drawn for, **untested** |
@@ -34,7 +34,7 @@ Or by hand:
 ```sh
 git clone https://github.com/wled/WLED.git && cd WLED
 git checkout -b nanoleaf-shapes 961961fdde8c22150a0212243621ee71bc9a7639
-git am /path/to/this/repo/wled/core-patch/*.patch     # applies 0001 and 0002 in order
+git am /path/to/this/repo/wled/core-patch/*.patch     # applies 0001 to 0003 in order
 npm ci && npm run build
 pio run -e esp32c5_nanoleaf                 # or esp32c6_nanoleaf
 ```

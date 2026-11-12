@@ -31,12 +31,13 @@ were measured here and have since been merged into that document:
    git checkout 961961fdde8c22150a0212243621ee71bc9a7639   # optional: the exact tested base
    npm ci
    ```
-2. **Make the usermod available to WLED.** Either copy this folder into WLED's `usermods/` folder:
+2. **Make the usermod available to WLED** by copying this folder into WLED's `usermods/` folder:
    ```sh
    cp -r /path/to/Nanoleaf-Shapes-controller/wled/usermod/nanoleaf_shapes usermods/
    ```
-   and use `custom_usermods = nanoleaf_shapes` below, or leave it where it is and point to it with
-   `custom_usermods = symlink:///path/to/Nanoleaf-Shapes-controller/wled/usermod/nanoleaf_shapes`.
+   and use `custom_usermods = nanoleaf_shapes` below. Pointing at it in place with
+   `custom_usermods = symlink:///...` does not work. PlatformIO cannot work out the library's name from a
+   symlink, so WLED never adds its own include path and the build stops at `#include "wled.h"`.
 3. **Add an environment** to `platformio_override.ini`. For the ESPC5-12 (ESP32-C5):
    ```ini
    [platformio]
@@ -50,7 +51,7 @@ were measured here and have since been merged into that document:
      -D LEAFBUS_RX_PIN=27
      -D LED_TYPES=TYPE_SK6812_RGBW      ; RGBW so the panels' white channel survives
      -D DATA_PINS=2                     ; unused GPIO: this output only feeds the usermod
-     -D PIXEL_COUNTS=9                  ; one pixel per panel
+     -D PIXEL_COUNTS=9                  ; one pixel per panel: set this to your own panel count
      -D BTNPIN=28
      -D SERVERNAME='"Nanoleaf Shapes"'
      -D MDNS_NAME='"nanoleaf-wled"'

@@ -1,0 +1,141 @@
+From 25e484a724dd9f4550099245f7e9f9dda4d3c8c0 Mon Sep 17 00:00:00 2001
+From: Cptmeme <61885007+Cptmeme@users.noreply.github.com>
+Date: Thu, 12 Nov 2026 18:32:51 +0100
+Subject: [PATCH] LeafBus: drop the echoed layout command, and compact the 2D
+ map
+
+Two fixes, both found on a real wall of 14 hexagons and 9 triangles.
+
+The layout reply often began with 0x80, our own layout-detect command. The
+bus is half duplex and the panels relay what they hear, so a copy arrives
+after send() has stopped waiting for its echo. 0x80 has bit 7 set and a
+connector-count nibble of 0, so enumerate() counted it as a panel: a 23
+panel wall came up as 24, every pixel landed one panel along, pixel 0 drove
+nothing, and the bad byte went into _layout, so the geometry never parsed
+and no ledmap was written. A leading 0x80 is now dropped before anything
+reads the reply.
+
+With the map written, it was 53 x 34 cells for 23 panels at the wall's
+rotation, and touching panels sat 4, 5 or 6 cells apart depending on the
+direction they touched in. The lattice is fine enough for mini triangles,
+which hexagons and big triangles do not need. gridPanels() now tries
+coarser cells and keeps one only if no two panels share a cell, every pair
+of joined panels stays exactly one cell apart, and the cells are within
+1.2x of square. On that wall: 8 x 7, every neighbour one cell apart. The
+four mini triangle layouts captured earlier go from 2 cells apart to 1 at
+the same 0.87 aspect, an exact halving of the lattice. Where nothing
+qualifies, the plain lattice stands, as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ wled00/bus_leafbus.cpp    |  8 +++++
+ wled00/leafbus_geometry.h | 65 +++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 70 insertions(+), 3 deletions(-)
+
+diff --git a/wled00/bus_leafbus.cpp b/wled00/bus_leafbus.cpp
+index c27673a9..d4dfbbcb 100644
+--- a/wled00/bus_leafbus.cpp
++++ b/wled00/bus_leafbus.cpp
+@@ -270,6 +270,14 @@ void BusLeafBus::enumerate() {
+       if (!end) continue;
+     }
+     n = end - cur + 1;
++    // Drop our own command byte if it leads the reply. The bus is half duplex and the panels
++    // relay what they hear, so the 0x80 we sent comes back at the head of the layout often
++    // enough to matter -- send() only waits LB_ECHO_MS for its own echo and the relayed copy
++    // arrives later. It is not a node, but it has bit 7 set and a connector-count nibble of 0,
++    // so the count below took it for an extra panel: a 23 panel wall enumerated as 24, every
++    // pixel landed one panel along, and pixel 0 drove nothing. It also went into _layout, which
++    // is what the geometry parses, so no ledmap was ever written either.
++    if (n > 1 && cur[0] == LB_LAYOUT_DETECT) memmove(cur, cur + 1, --n);
+     stable = (n == lastLen && memcmp(cur, last, n) == 0);
+     memcpy(last, cur, n);
+     lastLen = n;
+diff --git a/wled00/leafbus_geometry.h b/wled00/leafbus_geometry.h
+index 84d86710..80676d7f 100644
+--- a/wled00/leafbus_geometry.h
++++ b/wled00/leafbus_geometry.h
+@@ -146,6 +146,55 @@ inline bool placePanels(Panel *p, int n) {
+   return true;
+ }
+ 
++namespace detail {
++// The lattice has to be fine enough for mini triangles, so a wall of hexagons and big triangles comes out
++// almost empty: a real 14 hexagon + 9 triangle wall gave 53 x 34 cells for 23 panels, with touching panels
++// four, five or six cells apart depending on the direction they touch in. That is uneven as well as sparse,
++// and 2D effects sampled through it look like noise. So coarser cells are tried, a lattice columns by b
++// lattice rows, and one is kept only if no two panels share a cell and every pair of joined panels lands
++// exactly one cell apart -- the even spacing the lattice was there for in the first place. Cells also have
++// to stay within MAX_ASPECT of square: area alone picked 33.5 x 58 mm cells for a mini triangle ring, and
++// WLED draws every cell as a square, so a circle came out as a tall ellipse on the wall. Of what passes,
++// the smallest grid wins, the squarest cells on a tie. If nothing passes, the plain lattice stands.
++constexpr int   MAX_CELL_STEP = 8;
++constexpr float MAX_ASPECT    = 1.2f;   // the lattice's own 16.75 x 19.34 mm is 0.87, inside this
++inline void compactLattice(const Panel *p, int n, const int *col, const int *row, int &kx, int &ky) {
++  long bestArea = -1;
++  float bestSkew = 0.0f;
++  for (int a = 1; a <= MAX_CELL_STEP; a++) {
++    for (int b = 1; b <= MAX_CELL_STEP; b++) {
++      int c[MAX_PANELS], r[MAX_PANELS], w = 0, h = 0;
++      for (int i = 0; i < n; i++) {
++        c[i] = (int)lroundf((float)col[i] / a);
++        r[i] = (int)lroundf((float)row[i] / b);
++        if (c[i] + 1 > w) w = c[i] + 1;
++        if (r[i] + 1 > h) h = r[i] + 1;
++      }
++      if (w > MAX_GRID || h > MAX_GRID) continue;
++      bool ok = true;
++      for (int i = 0; i < n && ok; i++) {
++        for (int j = 0; j < i && ok; j++) ok = c[i] != c[j] || r[i] != r[j];
++        int q = p[i].parent; // parents come first in layout order, so c[q] and r[q] are already set
++        if (ok && q >= 0) {
++          int dc = c[i] - c[q], dr = r[i] - r[q];
++          ok = dc >= -1 && dc <= 1 && dr >= -1 && dr <= 1;
++        }
++      }
++      if (!ok) continue;
++      long area = (long)w * h;
++      float skew = fabsf(logf((a * LATTICE_X) / (b * LATTICE_Y)));
++      if (skew > logf(MAX_ASPECT)) continue;
++      if (bestArea < 0 || area < bestArea || (area == bestArea && skew < bestSkew)) {
++        bestArea = area;
++        bestSkew = skew;
++        kx = a;
++        ky = b;
++      }
++    }
++  }
++}
++} // namespace detail
++
+ // Assign each panel its own grid cell after rotating the layout by rotationDeg (counter-clockwise): the panel
+ // lattice for multiples of 60 degrees, otherwise a grid of square cells.
+ // Row 0 is the top. cells[i] = row * width + column for panel i. Returns false if no grid of at most
+@@ -167,11 +216,21 @@ inline bool gridPanels(const Panel *p, int n, float rotationDeg, uint8_t &width,
+     onLattice = fabsf(fx - roundf(fx)) <= LATTICE_TOL && fabsf(fy - roundf(fy)) <= LATTICE_TOL;
+   }
+   if (onLattice) {
+-    int w = (int)lroundf((maxX - minX) / LATTICE_X) + 1, h = (int)lroundf((maxY - minY) / LATTICE_Y) + 1;
++    int col[MAX_PANELS], row[MAX_PANELS], kx = 1, ky = 1, w = 0, h = 0;
++    for (int i = 0; i < n; i++) {
++      col[i] = (int)lroundf((xs[i] - minX) / LATTICE_X);
++      row[i] = (int)lroundf((maxY - ys[i]) / LATTICE_Y);
++    }
++    detail::compactLattice(p, n, col, row, kx, ky);
++    for (int i = 0; i < n; i++) {
++      col[i] = (int)lroundf((float)col[i] / kx);
++      row[i] = (int)lroundf((float)row[i] / ky);
++      if (col[i] + 1 > w) w = col[i] + 1;
++      if (row[i] + 1 > h) h = row[i] + 1;
++    }
+     bool clash = w > MAX_GRID || h > MAX_GRID;
+     for (int i = 0; i < n && !clash; i++) {
+-      int col = (int)lroundf((xs[i] - minX) / LATTICE_X), row = (int)lroundf((maxY - ys[i]) / LATTICE_Y);
+-      cells[i] = (uint16_t)(row * w + col);
++      cells[i] = (uint16_t)(row[i] * w + col[i]);
+       for (int j = 0; j < i; j++) if (cells[j] == cells[i]) { clash = true; break; }
+     }
+     if (!clash) {
+-- 
+2.51.0
+
