@@ -391,9 +391,10 @@ class UsermodNanoleafShapes : public Usermod {
           if (!end) continue;
         }
         n = end - cur + 1;
-        // Drop our own command byte if it leads the reply. The bus is half duplex and the panels relay what
-        // they hear, so the 0x80 we sent comes back at the head of the layout often enough to matter -- send()
-        // only waits LB_ECHO_MS for its own echo and the relayed copy arrives later. It is not a node, but it
+        // Drop our own command byte if it leads the reply. The echo of the 0x80 layout-detect arrives later than
+        // send() waits for (LB_ECHO_MS): measured on a 23 panel wall, send() found it missing on nearly every such
+        // command while the C0 polls echoed normally, and the byte then turned up at the head of the reply
+        // instead. It is not a node, but it
         // has bit 7 set and a connector-count nibble of 0, so the count below took it for an extra panel: a 23
         // panel wall enumerated as 24, every pixel landed one panel along, pixel 0 drove nothing, and the byte
         // went into _layout, where the geometry could not parse it, so no ledmap was written either.
@@ -448,7 +449,7 @@ class UsermodNanoleafShapes : public Usermod {
         return false;
       }
       _checkEvery = LB_LAYOUT_CHECK_MS;
-      // The same relayed echo as in enumerate(). sameNodes() compares bytes with bit 7 set, and 0x80 is one,
+      // The same late echo as in enumerate(). sameNodes() compares bytes with bit 7 set, and 0x80 is one,
       // so leaving it in made nearly every check see an extra node against the clean stored layout and
       // re-enumerate about once a second.
       size_t len = end - cur + 1;

@@ -374,7 +374,24 @@ static int layout_detect(uint8_t *buf, int wait_ms, int *heard)
     }
     *heard += n;
     const uint8_t *end = memchr(buf, PB_TERMINATOR, n);
-    return end ? end - buf + 1 : 0;
+    if (!end) {
+        return 0;
+    }
+    int len = end - buf + 1;
+    // Drop our own command byte if it leads the reply. The echo of the 0x80 arrives later than
+    // bus_send() waits for (5 ms): measured on a 23 panel wall, `raw 900 80` reported "echo BAD" with
+    // 80 as the first reply byte 8 times out of 8, while the C0 polls echoed normally, so the byte
+    // lands at the head of the reply. It is not a node, but it has bit 7 set, so parse_layout() rejected
+    // the string and the fallback count took it
+    // for an extra panel -- a 23 panel wall of hexagons and triangles came up as 24 with every pixel one
+    // panel along. Every layout read comes through here, so this also keeps layout_changed() comparing
+    // like with like: before, a read that happened to arrive without the echo looked like a new layout
+    // and re-enumerated for nothing. Never seen on nine mini triangles, which is why it
+    // went unnoticed until a bigger wall.
+    if (len > 1 && buf[0] == PB_LAYOUT_DETECT) {
+        memmove(buf, buf + 1, --len);
+    }
+    return len;
 }
 
 esp_err_t pb_enumerate(void)

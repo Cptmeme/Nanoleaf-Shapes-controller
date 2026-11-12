@@ -1,4 +1,4 @@
-From 25e484a724dd9f4550099245f7e9f9dda4d3c8c0 Mon Sep 17 00:00:00 2001
+From 166c1fafb6ef2c39320aca0affaaa0f9d8ea1f88 Mon Sep 17 00:00:00 2001
 From: Cptmeme <61885007+Cptmeme@users.noreply.github.com>
 Date: Thu, 12 Nov 2026 18:32:51 +0100
 Subject: [PATCH] LeafBus: drop the echoed layout command, and compact the 2D
@@ -6,9 +6,11 @@ Subject: [PATCH] LeafBus: drop the echoed layout command, and compact the 2D
 
 Two fixes, both found on a real wall of 14 hexagons and 9 triangles.
 
-The layout reply often began with 0x80, our own layout-detect command. The
-bus is half duplex and the panels relay what they hear, so a copy arrives
-after send() has stopped waiting for its echo. 0x80 has bit 7 set and a
+The layout reply often began with 0x80, our own layout-detect command. Its
+echo arrives after send() stops waiting for it -- on the ESP-IDF build of
+the same bus code, `raw 900 80` reported the echo missing with 80 as the
+first reply byte 8 times in 8, while the C0 polls echoed fine -- so the
+byte lands at the head of the reply. 0x80 has bit 7 set and a
 connector-count nibble of 0, so enumerate() counted it as a panel: a 23
 panel wall came up as 24, every pixel landed one panel along, pixel 0 drove
 nothing, and the bad byte went into _layout, so the geometry never parsed
@@ -28,22 +30,23 @@ qualifies, the plain lattice stands, as before.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
- wled00/bus_leafbus.cpp    |  8 +++++
+ wled00/bus_leafbus.cpp    |  9 ++++++
  wled00/leafbus_geometry.h | 65 +++++++++++++++++++++++++++++++++++++--
- 2 files changed, 70 insertions(+), 3 deletions(-)
+ 2 files changed, 71 insertions(+), 3 deletions(-)
 
 diff --git a/wled00/bus_leafbus.cpp b/wled00/bus_leafbus.cpp
-index c27673a9..d4dfbbcb 100644
+index c27673a9..e0ee1c3b 100644
 --- a/wled00/bus_leafbus.cpp
 +++ b/wled00/bus_leafbus.cpp
-@@ -270,6 +270,14 @@ void BusLeafBus::enumerate() {
+@@ -270,6 +270,15 @@ void BusLeafBus::enumerate() {
        if (!end) continue;
      }
      n = end - cur + 1;
-+    // Drop our own command byte if it leads the reply. The bus is half duplex and the panels
-+    // relay what they hear, so the 0x80 we sent comes back at the head of the layout often
-+    // enough to matter -- send() only waits LB_ECHO_MS for its own echo and the relayed copy
-+    // arrives later. It is not a node, but it has bit 7 set and a connector-count nibble of 0,
++    // Drop our own command byte if it leads the reply. The echo of the 0x80 layout-detect arrives
++    // later than send() waits for (LB_ECHO_MS): measured on a 23 panel wall, send() found it
++    // missing on nearly every such command while the C0 polls echoed normally, and the byte then
++    // turned up at the head of the reply instead. It is not a node, but it has bit 7 set and a
++    // connector-count nibble of 0,
 +    // so the count below took it for an extra panel: a 23 panel wall enumerated as 24, every
 +    // pixel landed one panel along, and pixel 0 drove nothing. It also went into _layout, which
 +    // is what the geometry parses, so no ledmap was ever written either.
