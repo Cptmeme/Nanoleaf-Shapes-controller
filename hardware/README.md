@@ -773,6 +773,19 @@ posts and rim under its front, the board edge at the 0.30 mm wall fit.
 surface, which is the whole reason the pocket test had to be split, and the only bridge is the 17.34 mm
 span closing the plate recess. The lid goes **button pads down**.
 
+**Print `enclosure_tray_comb.stl`, not `enclosure_tray.stl`.** It is the tray with a loose comb sitting in
+the linker recess, holding up that bridge while it prints. The bridge is the floor the linker plate rests
+on, so its height decides both whether the plate sits flush and whether the linker's hooks reach past the
+pocket wall to latch. The comb stops one 0.12 mm layer below it, the same gap a slicer leaves above its own
+supports, and stands 3 mm out past the panel edge as a tab. Pull it out by that tab once the print is done.
+
+Slice it with **0.12 mm layers, no supports, thick bridges off and a bridge flow ratio of 1**. In
+PrusaSlicer, Thick bridges is under Print Settings, Layers and perimeters, and many presets have it on.
+With it on, the floor's first layer is printed as round strands that hang 0.22 mm below where the floor
+should be, and they settle on the comb lower still. The plate then stands proud and the linker will not
+latch. Check the preview before printing: at z 2.48 the bridge across the recess should be 0.12 mm tall,
+not 0.33. These settings gave cases that latch on an Ender-3 V2 in PLA+.
+
 **The board mock comes in three files.** `board_mock_front.stl` and `board_mock_back.stl` are the halves,
 split down the board's mid-plane with their parts facing up, to be glued back to back into a 1.60 mm board
 -- that pair prints without a single support. `board_mock_full.stl` is the whole thing in one piece, placed
