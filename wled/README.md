@@ -1,26 +1,15 @@
 # WLED for the Nanoleaf Shapes controller
 
-There are two ways to run [WLED](https://github.com/wled/WLED) on the interface board. Both make every panel
-one WLED pixel, generate a 2D map of the real panel layout so 2D effects follow the wall, and run the panel
-bus in a background task. **Start with the usermod.**
+[WLED](https://github.com/wled/WLED) runs on the controller through a usermod, a drop-in folder that needs no
+changes to WLED itself. Every panel becomes one WLED pixel, a 2D map of the real panel layout is generated so
+2D effects follow the wall, the case's buttons and panel touch become WLED button presses, and the panel bus
+runs in a background task.
 
-| | [**Usermod**](usermod/nanoleaf_shapes/) (recommended) | [Core patch](core-patch/) (the original build) |
-|---|---|---|
-| Changes to WLED | None: a drop-in usermod folder | Patches WLED's LED output code |
-| Newer WLED versions | Rebuild with the new WLED | The patches have to be rebased |
-| How it gets the colours | Reads the pixels WLED renders for an LED output you configure (an RGBW type on an unused GPIO) | Adds its own "Nanoleaf Shapes" LED output type |
-| Settings | Config → Usermods: bus pins, automatic 2D map, rotation | Config → LED Preferences |
-| Status | Builds for the ESP32-C5 and ESP32-C6; not yet run on hardware | **Tested** on hardware (ESP32-C5) with 9 Mini Triangles |
+Build, flashing and setup are in [`usermod/nanoleaf_shapes/`](usermod/nanoleaf_shapes/).
 
-The usermod uses the same bus driver as the core patch, restructured so WLED itself stays untouched. The core
-patch came first and is kept for reference, and for anyone who wants the exact build that was tested on the
-board.
-
-| Folder | Contents |
-|---|---|
-| [`usermod/nanoleaf_shapes/`](usermod/nanoleaf_shapes/) | The usermod, with build and setup instructions |
-| [`core-patch/`](core-patch/) | Two WLED patches (`0001`, `0002`), `build.sh`, and the instructions for the patched build |
+An earlier version patched WLED's own LED output code instead. It is the WLED build the hardware tests in the
+main README were done with, and it is in this repository's history up to commit `095528c`.
 
 ## License
 
-WLED is licensed under EUPL-1.2. Both variants build into WLED and are provided under WLED's licence.
+WLED is licensed under EUPL-1.2. The usermod builds into WLED and is provided under WLED's licence.

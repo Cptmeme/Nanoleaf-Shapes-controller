@@ -10,8 +10,8 @@ single panel edge and takes **42 V, GND and DATA** from it: no stock controller 
 
 It runs one of four firmwares:
 
-- **WLED**, through a drop-in [usermod](wled/usermod/nanoleaf_shapes/) that needs no changes to WLED itself
-  (recommended), or the original [core patch](wled/core-patch/). You get effects, 2D effects laid out on the
+- **WLED**, through a drop-in [usermod](wled/usermod/nanoleaf_shapes/) that needs no changes to WLED itself.
+  You get effects, 2D effects laid out on the
   real panel shape, the WLED apps and Home Assistant. See [`wled/`](wled/).
 - **A standalone ESP-IDF firmware** with a Wi-Fi console, status page, OTA updates and a DDP receiver. It's
   useful for bring-up, protocol work, or as a network target for another WLED instance. See [`firmware/`](firmware/).
@@ -23,9 +23,9 @@ It runs one of four firmwares:
   settings on this board, and hasn't been tested on it yet; see [Running LeafBus](#running-leafbus).
 
 > **Status:** the hardware is built and working with an ESP32-C5 module, driving 9 Mini Triangles in chain,
-> fork and ring layouts, with WLED (the core-patch build), with the ESP-IDF firmware, and as a Matter light in
-> a Thread network.
-> Hexagons and large Triangles are handled by the code but have not been tested on real panels yet.
+> fork and ring layouts, with WLED (an earlier build that patched WLED directly), with the ESP-IDF firmware,
+> and as a Matter light in a Thread network.
+> Hexagons and large Triangles have since run on a 23 panel wall, with WLED and as a Matter light.
 > **Rev B is built and working**, with USB-C flashing, three buttons on the case and a printed
 > enclosure. The project files in this repository are now **rev C**, which is rev B with the faults its
 > bring-up exposed. No rev C board has been fabricated. See [Current board](#current-board-rev-c).
@@ -36,7 +36,7 @@ It runs one of four firmwares:
 |---|---|
 | [`hardware/`](hardware/) | Rev C KiCad project (schematic and PCB), fabrication files in `fab/`, and the printable case STLs in `mechanical/`. Rev B is built and working, rev C is rev B with its bring-up fixes and has not been fabricated |
 | [`firmware/`](firmware/) | ESP-IDF firmware |
-| [`wled/`](wled/) | WLED integration: the usermod (recommended) and the original core patch, each with build instructions |
+| [`wled/`](wled/) | WLED integration: the usermod, with build, flashing and setup instructions |
 | [`matter-over-thread/`](matter-over-thread/) | Matter-over-Thread firmware (esp-matter) |
 | [`docs/protocol-notes.md`](docs/protocol-notes.md) | Panel bus behaviour measured on real panels, since merged into the LeafBus spec and credited there |
 
@@ -100,9 +100,9 @@ way round.
 | Use | Everyday lighting: effects, apps, Home Assistant | Smart-home light: Apple Home, Google Home, Home Assistant | Bring-up, diagnostics, protocol exploration |
 | Network | Wi-Fi | Thread (needs a Thread border router); pairing over Bluetooth | Wi-Fi |
 | Panel colours | WLED effects, including 2D on the real layout | One colour for all panels, white temperature, brightness; a rainbow switch | Console commands, or DDP from any sender |
-| Touch | Usermod: a touch presses a chosen WLED button, the next effect by default. Untested on hardware | Not yet exposed | Logged; "touch light" demo |
+| Touch | A touch presses a chosen WLED button, the next effect by default. Untested on hardware | Not yet exposed | Logged; "touch light" demo |
 | Updates | WLED's update page | Serial (keeps the pairing); Matter OTA is enabled but untested | HTTP OTA with rollback |
-| Chips | Usermod: builds for C5 and C6, not yet run on hardware. Core patch: tested on C5, C6 untested, also compiles for C3 and S3 | C5 (tested) and C6 (builds, untested) | Tested on C5 |
+| Chips | Builds for C5 and C6, not yet run on hardware. An earlier build with the same bus driver ran on the C5 | C5 (tested) and C6 (builds, untested) | Tested on C5 |
 
 All three drive the panels the same way: they enumerate the layout at start-up, poll the panels every 50 ms,
 and re-enumerate when panels are added or removed while running.

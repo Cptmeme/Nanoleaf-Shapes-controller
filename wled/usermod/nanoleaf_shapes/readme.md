@@ -3,12 +3,12 @@
 Drives **Nanoleaf Shapes** light panels from WLED over their own panel bus, using the
 [interface board](../../../hardware) in place of the stock Nanoleaf controller. One panel = one pixel.
 
-Needs no changes to WLED itself — this replaces the earlier `TYPE_LEAFBUS` [core patch](../../core-patch/).
+Needs no changes to WLED itself.
 
 **Status:** builds against WLED `main` at commit `961961fd` (17.0.0-dev) for the ESP32-C5 and ESP32-C6
-(checked 2026-11-15, with the case buttons and touch), but hasn't been run on hardware yet. The core patch uses
-the same bus driver and is the version that has been run on hardware. The buttons and touch below are in this
-usermod only, and are untested on hardware.
+(checked 2026-11-15), but hasn't been run on hardware yet. Its bus driver, layout parser and 2D map are the same
+code as an earlier build that patched WLED directly, and that build has run on Mini Triangles and on a 23 panel
+wall of Hexagons and Triangles. The case buttons and touch are new in the usermod and untested on hardware.
 
 ## How it works
 
@@ -68,9 +68,31 @@ were measured here and have since been merged into that document:
 Pin defaults are the tested ESPC5-12 (ESP32-C5) values; the ESP32-C6 pins come from the schematic and are
 **untested**. Both can also be set at runtime in the usermod settings.
 
-**Flashing** works the same as for the core patch; see [Flash](../../core-patch/README.md#flash). The images
-are in `.pio/build/<environment>/`. For updates over Wi-Fi, note the WLED firmware-check bug described
-there: without the core patch's fix, tick **Ignore firmware validation** when uploading.
+## Flash
+
+The first time, write the full image over USB, because WLED needs its own partition layout. Put the board into
+download mode as described under [Flashing](../../../README.md#flashing) in the main README, then run, from
+`.pio/build/<environment>/`:
+
+```sh
+# ESPC5-12 (ESP32-C5): the bootloader goes at 0x2000
+esptool.py --chip esp32c5 -p /dev/cu.usbserial-XXXX -b 115200 --before no_reset --after watchdog_reset \
+  write_flash --erase-all 0x2000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
+
+# WT0132C6-S5 (ESP32-C6): the bootloader goes at 0x0
+esptool.py --chip esp32c6 -p /dev/cu.usbserial-XXXX -b 115200 --before no_reset --after watchdog_reset \
+  write_flash --erase-all 0x0 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
+```
+
+`--erase-all` removes whatever ran on the board before, including a Matter pairing. Within seconds of starting,
+the panels turn **orange**, WLED's default colour. Then join the Wi-Fi network `WLED-AP` (password `wled1234`),
+open `4.3.2.1` and enter your Wi-Fi details.
+
+**Later updates** go through WLED's update page (Config → Security & Updates), or from the command line with
+`curl -F update=@firmware.bin http://nanoleaf-wled.local/update`. WLED at `961961fd` has a bug in its firmware
+check: the release name it reads from the uploaded file gets random bytes appended, so an update is refused
+with "release name mismatch". Tick **Ignore firmware validation**, or add `-F skipValidation=1` to the `curl`
+command.
 
 ## Setup
 
@@ -129,7 +151,7 @@ so touch with a flat hand or several fingers.
   generated ledmap will reference LED indices that don't exist — in the core version these were the
   same number by construction, here they are two separate settings.
 - Panel brightness is set to full at enumeration; WLED does its own scaling.
-- Mini Triangles, Triangles and Hexagons have all run on hardware, the last two on a 23 panel wall with the
-  core patch, which shares this bus driver and geometry.
+- Mini Triangles, Triangles and Hexagons have all run on hardware, the last two on a 23 panel wall, with the
+  earlier build that patched WLED directly and shared this bus driver and geometry.
 - The layout is read again every second, because the panels' hot-plug marker does not reliably report an
   added panel, so a panel plugged in while WLED runs is picked up without a restart.
