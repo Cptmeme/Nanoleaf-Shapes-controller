@@ -100,7 +100,7 @@ way round.
 | Use | Everyday lighting: effects, apps, Home Assistant | Smart-home light: Apple Home, Google Home, Home Assistant | Bring-up, diagnostics, protocol exploration |
 | Network | Wi-Fi | Thread (needs a Thread border router); pairing over Bluetooth | Wi-Fi |
 | Panel colours | WLED effects, including 2D on the real layout | One colour for all panels, white temperature, brightness; a rainbow switch | Console commands, or DDP from any sender |
-| Touch | Not yet wired to WLED actions | Not yet exposed | Logged; "touch light" demo |
+| Touch | Usermod: a touch presses a chosen WLED button, the next effect by default. Untested on hardware | Not yet exposed | Logged; "touch light" demo |
 | Updates | WLED's update page | Serial (keeps the pairing); Matter OTA is enabled but untested | HTTP OTA with rollback |
 | Chips | Usermod: builds for C5 and C6, not yet run on hardware. Core patch: tested on C5, C6 untested, also compiles for C3 and S3 | C5 (tested) and C6 (builds, untested) | Tested on C5 |
 

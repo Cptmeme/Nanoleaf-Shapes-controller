@@ -6,8 +6,9 @@ Drives **Nanoleaf Shapes** light panels from WLED over their own panel bus, usin
 Needs no changes to WLED itself — this replaces the earlier `TYPE_LEAFBUS` [core patch](../../core-patch/).
 
 **Status:** builds against WLED `main` at commit `961961fd` (17.0.0-dev) for the ESP32-C5 and ESP32-C6
-(checked 2026-09-30), but hasn't been run on hardware yet. The core patch uses the same bus driver and is the
-version that has been run on hardware.
+(checked 2026-11-15, with the case buttons and touch), but hasn't been run on hardware yet. The core patch uses
+the same bus driver and is the version that has been run on hardware. The buttons and touch below are in this
+usermod only, and are untested on hardware.
 
 ## How it works
 
@@ -52,7 +53,7 @@ were measured here and have since been merged into that document:
      -D LED_TYPES=TYPE_SK6812_RGBW      ; RGBW so the panels' white channel survives
      -D DATA_PINS=2                     ; unused GPIO: this output only feeds the usermod
      -D PIXEL_COUNTS=9                  ; one pixel per panel: set this to your own panel count
-     -D BTNPIN=28
+     -D BTNPIN=10,1,0                 ; the case buttons: power, effect, brightness
      -D SERVERNAME='"Nanoleaf Shapes"'
      -D MDNS_NAME='"nanoleaf-wled"'
    board_build.flash_mode = dio
@@ -89,9 +90,36 @@ there: without the core patch's fix, tick **Ignore firmware validation** when up
 | `txPin` / `rxPin` | panel bus UART pins; changing them restarts the bus |
 | `autoMap` | maintain `/ledmap.json` from the panel layout so 2D effects follow the wall |
 | `rotation` | degrees, rotates that generated map |
+| `briButton` | the WLED button the usermod turns into a brightness button, `-1` for none (default `2`) |
+| `touchButton` | a touch on any panel presses this WLED button, `-1` to ignore touch (default `1`) |
 
 `autoMap` only ever replaces a map it wrote itself (tagged with `"generator":"nanoleaf-shapes"`); a
 hand-made `/ledmap.json` is left alone.
+
+## Buttons and touch
+
+The case has three buttons. With `BTNPIN=10,1,0` they are WLED buttons 0, 1 and 2, left to right as seen
+from the room:
+
+| Button | Tap | Hold |
+|---|---|---|
+| 0, the large cap | on and off | a random colour. **5 s opens WLED's access point and 10 s is a factory reset**, as on any WLED button 0 |
+| 1, middle | next effect, double tap for the next palette | dims or brightens, changing direction with each hold |
+| 2, right | brightness to the next 10 % mark, wrapping from 100 % to 10 % | ramps up to 100 % in about 4 s and stops there |
+
+Buttons 0 and 1 are WLED's own built-in actions. WLED has none for a third button, so the usermod gives it
+brightness, the same way the Matter firmware does. With the light off, a tap on it turns the light back on
+where it was. A preset assigned to a button under **Config → Time & Macros** replaces these actions, and on
+the brightness button the usermod then steps aside entirely.
+
+`BTNPIN` only sets the buttons on a fresh install. On a WLED that is already set up, add them under
+**Config → LED Preferences**: buttons 0, 1 and 2 on GPIO 10, 1 and 0, type **Pushbutton**.
+
+**Touch.** A touch on any panel counts as one press of `touchButton`, the middle button by default, so it
+steps to the next effect. Set it to `0` to switch the light on and off with a touch, to `2` for brightness,
+or to `-1` to ignore touch. There are no gestures and no holds: a panel reports how much of a hand covers it,
+and that reading fades by itself while the hand stays put. A light fingertip often does not register at all,
+so touch with a flat hand or several fingers.
 
 ## Known limitations
 
@@ -101,8 +129,7 @@ hand-made `/ledmap.json` is left alone.
   generated ledmap will reference LED indices that don't exist — in the core version these were the
   same number by construction, here they are two separate settings.
 - Panel brightness is set to full at enumeration; WLED does its own scaling.
-- Hexagons are untested — the geometry is implemented but only Mini Triangles and Triangles have been
-  verified on hardware.
-- A panel plugged in while WLED runs isn't picked up until WLED restarts: the bus re-enumerates on the panels'
-  hot-plug marker, and a newly added panel doesn't reliably trigger one. Removals are detected from that marker
-  or from missing replies.
+- Mini Triangles, Triangles and Hexagons have all run on hardware, the last two on a 23 panel wall with the
+  core patch, which shares this bus driver and geometry.
+- The layout is read again every second, because the panels' hot-plug marker does not reliably report an
+  added panel, so a panel plugged in while WLED runs is picked up without a restart.

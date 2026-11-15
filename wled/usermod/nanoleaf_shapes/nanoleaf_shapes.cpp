@@ -55,6 +55,20 @@ static constexpr char     LB_LEDMAP[]       = "/ledmap.json";
 static constexpr char     LB_SVG_URL[]      = "/nanoleaf.svg";
 static constexpr char     LB_MAP_MARK[]     = "\"generator\":\"nanoleaf-shapes\"";   // tags maps written here
 
+// The case's buttons are WLED buttons 0, 1 and 2 (BTNPIN=10,1,0 on the ESPC5-12). Power and effect keep
+// WLED's own actions. WLED has none for a third button, so the usermod gives it brightness, with the
+// same feel as the Matter firmware: a tap goes to the next 10 % mark, wrapping from 100 % to 10 %, and
+// holding ramps up and stops at the top.
+static constexpr uint32_t LB_BRI_HOLD_MS    = 400;    // held this long, the button ramps instead of stepping
+static constexpr uint32_t LB_BRI_RAMP_MS    = 150;    // a held button raises the brightness this often
+static constexpr uint8_t  LB_BRI_RAMP_STEP  = 10;     // by this much: 255 / 10 * 150 ms is about 3.8 s end to end
+static constexpr uint8_t  LB_BRI_FLOOR      = 255 / 10; // 10 %: below this the panels look off, so a press never goes there
+static constexpr uint32_t LB_DEBOUNCE_MS    = 50;
+// A panel reports how much of a hand covers it, not a gesture, and a held touch fades out by itself
+// (protocol-notes.md section 9). So a touch is one event, and it re-arms only after the panels read
+// untouched on this many polls in a row.
+static constexpr uint8_t  LB_TOUCH_REARM    = 2;
+
 // The original ESP32 loses UART2's pin routing shortly after start-up under WLED, so it stays on UART1
 #if defined(SOC_UART_HP_NUM) && SOC_UART_HP_NUM > 2 && !defined(CONFIG_IDF_TARGET_ESP32)
 static constexpr uart_port_t LB_UART = UART_NUM_2;
@@ -85,7 +99,44 @@ class UsermodNanoleafShapes : public Usermod {
       initDone = true;
     }
 
-    void loop() override {}   // the bus lives in its own task; nothing to do here
+    // The bus lives in its own task. The loop only acts on touches that task has seen, because WLED's state
+    // may only be changed from here.
+    void loop() override {
+      const uint32_t touches = _touches;
+      if (touches == _touchesSeen) return;
+      _touchesSeen = touches;               // several since the last loop still count once
+      if (touchButton < 0) return;
+      if (touchButton == briButton && ownsButton(briButton)) { briTap(); return; }
+      if (touchButton < (int)buttons.size()) { shortPressAction(touchButton); return; }
+      // The button is not set up, as on a board without case buttons: do what WLED would do for it.
+      if (touchButton == 0) { toggleOnOff(); stateUpdated(CALL_MODE_BUTTON); }
+      else if (touchButton == 1) { ++effectCurrent %= strip.getModeCount(); stateChanged = true; colorUpdated(CALL_MODE_BUTTON); }
+    }
+
+    // Only the brightness button is taken over, and only while it has no presets assigned in WLED, so a
+    // preset set on it in Time & Macros wins. Every other button goes through WLED's own handling.
+    bool handleButton(uint8_t b) override {
+      if ((int)b != briButton || !ownsButton(b)) return false;
+      const bool down = isButtonPressed(b);
+      const uint32_t now = millis();
+      if (down) {
+        if (!_briDown) {
+          if (now - _briUpAt < LB_DEBOUNCE_MS) return true;   // contact bounce just after a release
+          _briDown = true;
+          _briDownAt = now;
+          _briRamping = false;
+        } else if (now - _briDownAt >= LB_BRI_HOLD_MS && (!_briRamping || now - _briRampAt >= LB_BRI_RAMP_MS)) {
+          _briRamping = true;
+          _briRampAt = now;
+          briRamp();
+        }
+      } else if (_briDown) {
+        _briDown = false;
+        _briUpAt = now;
+        if (!_briRamping && now - _briDownAt >= LB_DEBOUNCE_MS) briTap();
+      }
+      return true;
+    }
 
     // Called right after the effects have rendered, before the strip is shown: the cheapest place
     // to take a consistent copy of the frame. Only memcpy-grade work happens here.
@@ -163,6 +214,8 @@ class UsermodNanoleafShapes : public Usermod {
       top[F("openDrain")] = openDrain;  // TX open drain, for unbuffered LeafBus wiring
       top[F("autoMap")]  = autoMap;      // maintain /ledmap.json from the panel layout
       top[F("rotation")] = rotation;     // degrees, rotates that map
+      top[F("briButton")]   = briButton;   // WLED button that steps and ramps the brightness, -1 = none
+      top[F("touchButton")] = touchButton; // a panel touch presses this WLED button, -1 = touch does nothing
     }
 
     // The layout drawing under the rotation field, so a new angle can be checked after saving. Index 1: each
@@ -171,6 +224,8 @@ class UsermodNanoleafShapes : public Usermod {
       settingsScript.print(F("addInfo('NanoleafShapes:rotation',1,'<br><img src=\""));
       settingsScript.print(LB_SVG_URL);
       settingsScript.print(F("\" style=\"max-width:100%;max-height:320px\" onerror=\"this.remove()\">');"));
+      settingsScript.print(F("addInfo('NanoleafShapes:briButton',1,'tap +10 %, hold to ramp up, -1 = off');"));
+      settingsScript.print(F("addInfo('NanoleafShapes:touchButton',1,'a touch presses this button, -1 = off');"));
     }
 
     bool readFromConfig(JsonObject &root) override {
@@ -188,6 +243,10 @@ class UsermodNanoleafShapes : public Usermod {
       const int16_t oldRotation = rotation;
       getJsonValue(top[F("rotation")], rotation);
       rotation = ((rotation % 360) + 360) % 360;
+      getJsonValue(top[F("briButton")],   briButton);
+      getJsonValue(top[F("touchButton")], touchButton);
+      briButton   = constrain(briButton,   -1, WLED_MAX_BUTTONS - 1);
+      touchButton = constrain(touchButton, -1, WLED_MAX_BUTTONS - 1);
       if (initDone && (autoMap != oldAutoMap || rotation != oldRotation)) _mapDone = false;
       if (initDone && (enabled != wasEnabled || txPin != oldTx || rxPin != oldRx || openDrain != oldOpenDrain)) {
         stop();
@@ -206,9 +265,20 @@ class UsermodNanoleafShapes : public Usermod {
     bool    openDrain = LEAFBUS_OPEN_DRAIN;
     bool    autoMap  = true;
     int16_t rotation = 0;
+    int8_t  briButton   = 2;   // the case's right-hand button
+    int8_t  touchButton = 1;   // like the middle button: the next effect
 
     bool initDone = false;
     bool running  = false;
+
+    // brightness button, WLED loop only
+    bool     _briDown = false, _briRamping = false;
+    uint32_t _briDownAt = 0, _briUpAt = 0, _briRampAt = 0;
+    // touch: counted by the bus task, acted on in the WLED loop
+    volatile uint32_t _touches = 0;
+    uint32_t _touchesSeen = 0;
+    bool     _touchArmed = true;   // bus task only
+    uint8_t  _untouchedPolls = 0;  // bus task only
 
     uint8_t *_frame = nullptr;            // brightness-scaled RGBW handed to the bus task
     volatile bool     _dirty = false;
@@ -235,6 +305,36 @@ class UsermodNanoleafShapes : public Usermod {
     volatile bool     _haveSvg = false;
 
     static const char _name[];
+
+    bool ownsButton(int b) const {
+      if (b < 0 || b >= (int)buttons.size()) return false;
+      const Button &btn = buttons[b];
+      return (btn.type == BTN_TYPE_PUSH || btn.type == BTN_TYPE_PUSH_ACT_HIGH)
+          && !btn.macroButton && !btn.macroLongPress && !btn.macroDoublePress;
+    }
+
+    // To the next 10 % mark above the current brightness, from 100 % back to 10 %. The marks are searched,
+    // not calculated from a percentage, which truncates: the Matter firmware's first version sat at 40 %
+    // forever that way. Off, a tap just turns the light back on where it was.
+    void briTap() {
+      if (!bri) { toggleOnOff(); stateUpdated(CALL_MODE_BUTTON); return; }
+      unsigned tenth = 0;
+      for (unsigned t = 1; t <= 10; t++) {
+        if (t * 255 / 10 > bri) { tenth = t; break; }
+      }
+      if (!tenth) tenth = 1;   // at the top: wrap round to the floor
+      bri = tenth * 255 / 10;
+      stateUpdated(CALL_MODE_BUTTON);
+    }
+
+    // Held: up to the top and stay there, keeping whatever it reached on release.
+    void briRamp() {
+      if (!bri) toggleOnOff();
+      if (bri >= 255) return;
+      const unsigned from = std::max<unsigned>(bri, LB_BRI_FLOOR);
+      bri = std::min<unsigned>(from + LB_BRI_RAMP_STEP, 255);
+      stateUpdated(CALL_MODE_BUTTON);
+    }
 
     void start() {
       if (running || txPin < 0 || rxPin < 0) return;
@@ -593,8 +693,21 @@ class UsermodNanoleafShapes : public Usermod {
       }
       if (n < expect) {
         if (++_missRun >= LB_MISS_LIMIT) _panels = 0; // assembly gone or restarted: enumerate again
-      } else {
-        _missRun = 0;
+        return;
+      }
+      _missRun = 0;
+      // The first byte of each pair is the panel's status. A touch sets 0x10 with a non-zero magnitude in the
+      // low nibble; 0x20 on the power supply's panel is ORed in, so the high nibble alone is no test.
+      bool touched = false;
+      for (unsigned i = 0; i < _panels; i++) {
+        const uint8_t st = reply[2 * i];
+        if ((st & 0x10) && (st & 0x0F)) { touched = true; break; }
+      }
+      if (touched) {
+        _untouchedPolls = 0;
+        if (_touchArmed) { _touchArmed = false; _touches = _touches + 1; }
+      } else if (!_touchArmed && ++_untouchedPolls >= LB_TOUCH_REARM) {
+        _touchArmed = true;
       }
     }
 
