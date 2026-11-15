@@ -80,7 +80,7 @@ for no reason. Cosmetic, and fixed while the rest was open.
 |---|---|
 | Mounting | Beside a panel, joined with a standard **rigid** Nanoleaf linker, like the stock controller |
 | Panel contact | Three exposed PCB pads that the linker's spring contacts press on, inside a printed pocket |
-| Programming | **USB-C with a CH340C** USB-serial chip and auto-reset. Data only: the board runs from the panels |
+| Programming | **USB-C with a CH340C** USB-serial chip and auto-reset. It also powers the board through D5 when no panel is attached |
 | Enclosure | FDM-printed. The linker pocket is designed from a linker model plus caliper measurements |
 | Module | ESP-12F footprint kept, so the ESP32-C5 and ESP32-C6 modules (and others) still fit |
 

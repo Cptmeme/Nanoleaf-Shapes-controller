@@ -81,13 +81,13 @@ way round.
 
 ### Power and safety
 
-- **Powered from the panels through `J1`:** the normal mode, and on a rev B board the only one. Wi-Fi,
-  Bluetooth and Thread all work reliably on it.
-- **Powered from USB:** rev C adds `D5`, a second SS210 from USB VBUS to the buck input, so the board runs
-  from a USB host with no panel attached. With a panel connected, that node sits at 42 V and the diode is
-  reverse biased, so nothing can reach the host. Without one, the buck runs from about 4.75 V, which leaves
-  only ~0.25 V over the TPS54360's minimum: fine for bench flashing at 100-300 mA, not guaranteed on a long
-  thin cable. On rev B, USB is data only and flashing needs a panel attached for power.
+- **Powered from the panels through `J1`:** the normal mode. Wi-Fi, Bluetooth and Thread all work
+  reliably on it.
+- **Powered from USB:** `D5`, a second SS210 from USB VBUS to the buck input, lets the board run from a
+  USB host with no panel attached. With a panel connected, that node sits at 42 V and the diode is reverse
+  biased, so the 42 V cannot reach the USB port of the laptop or PC on the other end. Without a panel, the
+  buck runs from about 4.75 V, which leaves only ~0.25 V over the TPS54360's minimum. That is fine for
+  bench flashing at 100-300 mA, but not guaranteed on a long thin cable.
 - **`D3`, an SMAJ48A, clamps the 42 V rail.** The board gets clipped onto live panels routinely, and
   hot-plugging into ceramic input capacitors can ring well above 42 V.
 - **There is no fuse and no reverse-polarity protection**, left out on purpose: the linker mates one way
@@ -135,8 +135,7 @@ adapter to wire up and no buttons to hold.
   circuit esptool assumes, so its reset asserts BOOT where it means to assert EN and the chip never enters
   the ROM loader. It fails as `Invalid head of packet` or `No serial data received`, which reads like a bad
   cable. Use `firmware/tools/revb_reset.py download`, flash with `--before no_reset`, then
-  `firmware/tools/revb_reset.py run`. Rev B's USB is data only, so the board needs a panel attached for
-  power, and 115200 is more reliable than 460800 on this link.
+  `firmware/tools/revb_reset.py run`. 115200 is more reliable than 460800 on this link.
 
 After the first flash, WLED and the ESP-IDF firmware update over Wi-Fi. The Matter firmware updates over
 serial again; without an erase, the pairing survives.
@@ -181,7 +180,7 @@ A 106.35 x 21.70 mm trapezoid, two layers, 1.6 mm, 63 components.
 | Power | Still the panels' own 42 V, so there is no second supply. `U1` TPS54360 buck down to 3.3 V, with `D3` SMAJ48A clamping the 42 V rail |
 | MCU | `U2` keeps the ESP-12F footprint, so an ESP32-C5 or ESP32-C6 module fits. An ESPC5-12 is what is actually fitted, because 5 GHz Wi-Fi and Thread both need the C5 |
 | Panel bus | `U3` and `U4` 74LVC1G125 buffers driven by an RC one-shot, plus a 100 k pull-up that holds the bus high so the ESP32-C5's boot straps read correctly with no panel attached |
-| Programming | `J3` USB-C and `U5` CH340C with auto-reset, so flashing needs no buttons and no separate serial adapter. Data only, the board still takes its power from the panels |
+| Programming | `J3` USB-C and `U5` CH340C with auto-reset, so flashing needs no buttons and no separate serial adapter. It also powers the board through `D5` when no panel is attached |
 | Buttons | Three on the back for everyday use, pressed through the case. Reset and boot are there too and come off once the board is flashed |
 
 ### The case
