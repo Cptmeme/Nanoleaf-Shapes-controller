@@ -212,6 +212,13 @@ them for yours. See [`hardware/README.md`](hardware/README.md) for what specific
 <p align="center"><em>The board in its printed case, clipped to a panel edge and driving the run. The three caps are
 the power, colour and brightness buttons.</em></p>
 
+<p align="center">
+  <img src="docs/media/case-render.png" width="640" alt="Render of two assembled white cases: one room side up showing the three button caps, one turned over showing the linker recess with the green board visible through the pocket">
+</p>
+<p align="center"><em>The case as designed. In front, the side that faces the room, with its three button caps. Behind
+it, a case turned over to show the side that faces the wall: the recess the linker plate sits in, and the
+pocket its plug clicks into, with the board showing through.</em></p>
+
 ### Fabrication
 
 `hardware/fab/pcbway/` holds the gerbers, drill files, BOM and centroid file, generated from the
