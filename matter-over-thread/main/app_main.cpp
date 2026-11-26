@@ -151,7 +151,10 @@ static void app_ota_verify_check(intptr_t)
 
 static void app_ota_verify_tick(void *)
 {
-    chip::DeviceLayer::PlatformMgr().ScheduleWork(app_ota_verify_check, 0); // CHIP thread, stack locked
+    // CHIP thread, stack locked. If it can't be queued, the next tick tries again.
+    if (chip::DeviceLayer::PlatformMgr().ScheduleWork(app_ota_verify_check, 0) != CHIP_NO_ERROR) {
+        ESP_LOGW(TAG, "OTA: could not schedule the confirmation check");
+    }
 }
 
 static void app_ota_verify_start()

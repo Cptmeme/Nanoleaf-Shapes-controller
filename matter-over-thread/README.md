@@ -11,7 +11,7 @@ Wi-Fi.
 | Endpoint 2 | On/Off Plug-in Unit: the rainbow switch |
 | Panels | All panels together are one light |
 | Chips | ESP32-C5 (ESPC5-12) and ESP32-C6 (WT0132C6-S5); both have a Thread radio |
-| Based on | [esp-matter](https://github.com/espressif/esp-matter) v1.5, ESP-IDF 5.5 |
+| Based on | [esp-matter](https://github.com/espressif/esp-matter) v1.6.1, ESP-IDF 6.0.2 (up to 1.1: v1.5, ESP-IDF 5.5.4) |
 | Status | Working on the ESP32-C5 board: the light, the rainbow switch (a colour choice switches it off), brightness restore on "on", and adding and removing panels while it runs |
 
 ## How it drives the panels
@@ -36,7 +36,7 @@ Wi-Fi.
 
 ## What you need
 
-- ESP-IDF 5.5.x and esp-matter v1.5, set up as in the
+- ESP-IDF v6.0.2 and esp-matter v1.6.1 (`release/v1.6.1`), set up as in the
   [esp-matter guide](https://docs.espressif.com/projects/esp-matter/en/latest/esp32/developing.html).
 - A **Thread Border Router** on your network, for example an Apple TV 4K or HomePod mini, a Google Nest Hub
   (2nd gen) or Nest Wifi Pro, or Home Assistant with an OpenThread Border Router.
@@ -88,6 +88,10 @@ differ.
 `./build.sh -p /dev/cu.usbserial-XXXX flash`, as under [Flash](#flash), still works. It is also the only
 way to write the bootloader, and the automatic rollback below needs the bootloader from this build. A
 board that is only ever updated over the air still updates fine; it just won't roll back.
+
+The bootloader can start apps built with newer ESP-IDF versions, but not older ones. A board flashed over
+serial with version 1.2 or later (ESP-IDF 6) can't be updated back to 1.1 or earlier (ESP-IDF 5.5). One
+flashed with an earlier version can take 1.2 over the air.
 
 ### Over the air (Matter OTA over Thread)
 

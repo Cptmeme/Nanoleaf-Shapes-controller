@@ -11,10 +11,10 @@
 # environment straight out of idf_tools.py. Override the paths below through the environment.
 set -e
 
-: "${IDF_PATH:=$HOME/.espressif/v5.5.4/esp-idf}"
+: "${IDF_PATH:=$HOME/.espressif/v6.0.2/esp-idf}"
 : "${IDF_TOOLS_PATH:=$HOME/.espressif}"
-: "${ESP_MATTER_PATH:=$HOME/.espressif/esp-matter}"
-: "${IDF_PYTHON_ENV_PATH:=$HOME/.espressif/tools/python/v5.5.4/venv}"
+: "${ESP_MATTER_PATH:=$HOME/.espressif/esp-matter-1.6.1}"
+: "${IDF_PYTHON_ENV_PATH:=$HOME/.espressif/python_env/idf6.0_py3.13_env}"
 export IDF_PATH IDF_TOOLS_PATH ESP_MATTER_PATH IDF_PYTHON_ENV_PATH
 # Such installs have no espidf.constraints file and idf.py refuses to start without it; the packages
 # are present, so skip the check.
