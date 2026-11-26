@@ -14,8 +14,8 @@ everyday use, [native WLED](../wled/) is the more complete option.
 
 ## Build
 
-You need [ESP-IDF](https://docs.espressif.com/projects/esp-idf/) **5.5 or newer**. Earlier versions don't
-support ESP32-C5 chip revision 1.0.
+Built with [ESP-IDF](https://docs.espressif.com/projects/esp-idf/) **6.0.2**. ESP-IDF 5.5 also builds it.
+Earlier versions don't support ESP32-C5 chip revision 1.0.
 
 ```sh
 cd firmware
@@ -101,6 +101,10 @@ Once the board is connected:
 
 An OTA image marks itself valid once it has joined Wi-Fi. An image that never gets that far is rolled back on
 the next reset.
+
+The bootloader can start apps built with newer ESP-IDF versions, but not older ones. A board flashed over serial
+with an ESP-IDF 6 build can't be updated over the air to an ESP-IDF 5.5 build. One flashed with ESP-IDF 5.5 can
+take an ESP-IDF 6 build over the air.
 
 > The console and the OTA endpoint have no authentication. Anyone on your network can use them.
 
